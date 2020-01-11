@@ -9,10 +9,10 @@
 
 #ifndef SOCKET_EXAMPLE_SERVER_H
 #define SOCKET_EXAMPLE_SERVER_H
-
+#include "../Shared/hardCodedData.h"
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-void MainServer(char port_num[5]);
+void MainServer(char port_num_char[5]);
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 

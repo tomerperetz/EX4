@@ -40,6 +40,13 @@ int initMsgParam(char *param, Messege *msg, int param_idx);
 
 int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5);
 
+int getLen(char *buffer, int idx, char last_char);
+
+void getSegement(char *dst_buffer, char *src_buffer, int start_idx, char last_idx);
+
+int decodeMsg(char *char_arr, Messege *decoded_msg);
+
+
 
 /**
  * SendBuffer() uses a socket to send a buffer.
