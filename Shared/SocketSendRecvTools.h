@@ -31,12 +31,13 @@ typedef struct _Messege
 } Messege;
 
 
-
-
 // Declerations ----------------------------------------------------------------->
 void printMessege(Messege *msg);
+
 void freeMessege(Messege *msg);
+
 int initMsgParam(char *param, Messege *msg, int param_idx);
+
 int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5);
 
 
