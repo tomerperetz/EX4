@@ -40,7 +40,16 @@ int initMsgParam(char *param, Messege *msg, int param_idx);
 
 int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5);
 
+void getEncodeMessegeLength(Messege *msg, int *encoded_messege_len);
 
+void printEncodedMessege(char *encoded_msg);
+
+int encodeMessegeAndSend(Messege *msg, SOCKET sd);
+
+int calcCharLstLen(const char* Buffer);
+
+int sendMessegeWrapper(SOCKET sd, char *type, char *param1, char *param2, char *param3,
+	char *param4, char *param5);
 /**
  * SendBuffer() uses a socket to send a buffer.
  *
@@ -62,7 +71,7 @@ TransferResult_t SendBuffer( const char* Buffer, int BytesToSend, SOCKET sd );
  * Str - the string to send. 
  * sd - the socket used for communication.
  */ 
-TransferResult_t SendString( const char *Str, SOCKET sd );
+TransferResult_t SendString(const char *char_arr, SOCKET sd);
 
 /**
  * Accepts:

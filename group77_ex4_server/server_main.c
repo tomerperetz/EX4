@@ -35,7 +35,10 @@ int main(int argc, char *argv[])
 
 	ret_val = initMessege(&msg, "Type", "Param1", "Param2", NULL, NULL, NULL);
 	printMessege(&msg);
+	getEncodeMessegeLength(&msg, &len);
+	printf("Encoded Messege Length: %d\n", len);
+
 	freeMessege(&msg);
 
-	MainServer(argv[1]);
+	//MainServer(argv[1]);
 }

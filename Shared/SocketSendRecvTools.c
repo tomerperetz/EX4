@@ -45,9 +45,8 @@ int initMsgParam(char *param, Messege *msg, int param_idx)
 
 int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5)
 {
-	int size_to_aloocate = 0, ret_val = TRUE;
-	if (type == NULL)
-		return ERR;
+	int ret_val = TRUE;
+
 	// Initializtion
 	msg->type = NULL;
 	msg->num_of_params = 0;
@@ -55,7 +54,9 @@ int initMessege(Messege *msg, char *type, char *param1, char *param2, char *para
 		msg->params[i] = NULL;
 		msg->params_len_lst[i] = 0;
 	}
-	
+	if (type == NULL)
+		return ret_val;
+
 	msg->type = (char*) malloc((strlen(type) + 1) * sizeof(char));
 	if (msg->type == NULL) {
 		ret_val = ERR;
@@ -93,24 +94,66 @@ MAIN_CLEAN_UP:
 	return ret_val;	
 }
 
-void getEncodeMessegeLength(Messege msg, int *encoded_messege_len)
+void getEncodeMessegeLength(Messege *msg, int *encoded_messege_len)
 {
-	*encoded_messege_len = (int) strlen(msg.type) + 1;
+	*encoded_messege_len = (int) strlen(msg->type) + 1;
 	for (int idx = 0; idx < MAX_NUM_OF_PARAMS; idx++) {
-		if (msg.params_len_lst[idx] == 0)
+		if (msg->params_len_lst[idx] == 0)
 			break;
-		*encoded_messege_len = (int) strlen(msg.params[idx]) + 1;
+		*encoded_messege_len += (int) strlen(msg->params[idx]) + 1;
 	}
 }
 
-int encodeMessegeAndSend(Messege msg)
+void printEncodedMessege(char *encoded_msg)
+{
+	char *curr_pos = encoded_msg;
+	for (curr_pos; *curr_pos != '\n'; curr_pos++) {
+		printf("%c", *curr_pos);
+	}
+	printf("%c", *curr_pos);
+
+}
+
+int encodeMessegeAndSend(Messege *msg, SOCKET socket)
 {
 	char *encoded_messege;
-	BOOL continue_flag = TRUE;
-	int encoded_messege_len = 0;
+	BOOL type_flag = TRUE;
+	int encoded_messege_len = 0, params_idx = 0, ret_val = TRUE;
+	TransferResult_t send_ret_val = TRNS_SUCCEEDED;
+
 	getEncodeMessegeLength(msg, &encoded_messege_len);
-	encoded_messege = (char*) malloc (sizeof(char)*encoded_messege_len);
-	return TRUE;
+	encoded_messege = (char*) malloc (sizeof(char) * (encoded_messege_len + 1 ));
+	if (encoded_messege == NULL) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP1;
+	}
+	strcpy_s(encoded_messege, (encoded_messege_len + 1), msg->type);
+	while (msg->num_of_params > 0 && msg->params[params_idx] != NULL) {
+		if (type_flag) {
+			strcat_s(encoded_messege, (encoded_messege_len + 1), ":");
+			type_flag = FALSE;
+		}
+		else {
+			strcat_s(encoded_messege, (encoded_messege_len + 1), ";");
+		}
+		strcat_s(encoded_messege, (encoded_messege_len + 1), msg->params[params_idx]);
+		params_idx++;
+		msg->num_of_params--;
+	}
+	encoded_messege[(int) strlen(encoded_messege)] = '\n';
+	
+	send_ret_val = SendString(encoded_messege, socket);
+	if (send_ret_val == TRNS_FAILED) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP2;
+	}
+MAIN_CLEAN_UP1:
+	if (ret_val == ERR) {
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+	}
+MAIN_CLEAN_UP2:
+	free(encoded_messege);
+	return ret_val;
 }
 
 int calcCharLstLen(const char* Buffer) 
@@ -123,6 +166,25 @@ int calcCharLstLen(const char* Buffer)
 		CurPlacePtr += 1;
 	}
 	return len + 1;
+}
+
+int sendMessegeWrapper(SOCKET socket, char *type, char *param1, char *param2, char *param3,
+	char *param4, char *param5)
+{
+	Messege msg;
+	int ret_val = TRUE;
+	if (type == NULL) {
+		raiseError(16, __FILE__, __func__, __LINE__, "Messege Type Error: No Such Messege!\n");
+		return ERR;
+	}
+
+	ret_val = initMessege(&msg, type, param1, param2, param3, param4, param5);
+	if (ret_val != TRUE) {
+		return ERR;
+	}
+	ret_val = encodeMessegeAndSend(&msg, socket);
+	freeMessege(&msg);
+	return ret_val;
 }
 
 TransferResult_t SendBuffer( const char* Buffer, int BytesToSend, SOCKET sd )
@@ -138,6 +200,7 @@ TransferResult_t SendBuffer( const char* Buffer, int BytesToSend, SOCKET sd )
 		if ( BytesTransferred == SOCKET_ERROR ) 
 		{
 			printf("send() failed, error %d\n", WSAGetLastError() );
+			raiseError(15, __FILE__, __func__, __LINE__, "\n");
 			return TRNS_FAILED;
 		}
 		
@@ -150,7 +213,7 @@ TransferResult_t SendBuffer( const char* Buffer, int BytesToSend, SOCKET sd )
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-TransferResult_t SendString( const char *Str, SOCKET sd )
+TransferResult_t SendString( const char *char_arr, SOCKET sd )
 {
 	/* Send the the request to the server on socket sd */
 	int TotalStringSizeInBytes;
@@ -159,7 +222,7 @@ TransferResult_t SendString( const char *Str, SOCKET sd )
 	/* The request is sent in two parts. First the Length of the string (stored in 
 	   an int variable ), then the string itself. */
 		
-	TotalStringSizeInBytes = (int)( strlen(Str) + 1 ); // terminating zero also sent	
+	TotalStringSizeInBytes = (int)( strlen(char_arr) + 1 ); // terminating zero also sent	
 
 	SendRes = SendBuffer( 
 		(const char *)( &TotalStringSizeInBytes ),
@@ -169,7 +232,7 @@ TransferResult_t SendString( const char *Str, SOCKET sd )
 	if ( SendRes != TRNS_SUCCEEDED ) return SendRes ;
 
 	SendRes = SendBuffer( 
-		(const char *)( Str ),
+		(const char *)(char_arr),
 		(int)( TotalStringSizeInBytes ), 
 		sd );
 
