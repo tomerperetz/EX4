@@ -39,7 +39,7 @@ static DWORD ServiceThread( SOCKET *t_socket );
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-void MainServer()
+void MainServer(char port_num_char[5])
 {
 	int Ind;
 	int Loop;
@@ -48,6 +48,7 @@ void MainServer()
 	SOCKADDR_IN service;
 	int bindRes;
 	int ListenRes;
+	int port_num_int = atoi(port_num_char);
 
 	// Initialize Winsock.
     WSADATA wsaData;
@@ -93,7 +94,7 @@ void MainServer()
 
     service.sin_family = AF_INET;
     service.sin_addr.s_addr = Address;
-    service.sin_port = htons( SERVER_PORT ); //The htons function converts a u_short from host to TCP/IP network byte order 
+    service.sin_port = htons(port_num_int); //The htons function converts a u_short from host to TCP/IP network byte order 
 	                                   //( which is big-endian ).
 	/*
 		The three lines following the declaration of sockaddr_in service are used to set up 

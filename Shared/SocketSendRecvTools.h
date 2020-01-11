@@ -1,21 +1,24 @@
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+// Description ----------------------------------------------------------------->
 /* 
  This file was written for instruction purposes for the 
  course "Introduction to Systems Programming" at Tel-Aviv
  University, School of Electrical Engineering, Winter 2011, 
  by Amnon Drory.
 */
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
+// Defines ----------------------------------------------------------------->
 #ifndef SOCKET_SEND_RECV_TOOLS_H
 #define SOCKET_SEND_RECV_TOOLS_H
 #define MAX_NUM_OF_PARAMS 5
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+
+// Includes ----------------------------------------------------------------->
 
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
-#include "./hardCodedData.h"
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+
+#include "hardCodedData.h"
+
+// Structs ----------------------------------------------------------------->
 
 typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED } TransferResult_t;
 
@@ -27,11 +30,8 @@ typedef struct _Messege
 	int params_len_lst[MAX_NUM_OF_PARAMS];
 } Messege;
 
-void printMessege(Messege *msg);
-void freeMessege(Messege *msg);
-int initMsgParam(char *param, Messege *msg, int param_idx);
-int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5);
-int calcCharLstLen(const char* Buffer);
+// Declerations ----------------------------------------------------------------->
+
 /**
  * SendBuffer() uses a socket to send a buffer.
  *

@@ -21,7 +21,7 @@ static const char HELPER[1000] = \
 "Server inputs: port num\n"\
 "Client inputs: server ip, server port num, user name \n"\
 "Output: Leaderboard will be printed to an output file \n"\
-"===========================================================================================\n";
+"===========================================================================================\n" ;
 
 int isDirectory(const char *path);
 int ensureArgs(int argc, int expected_argc, char *argv[]);
