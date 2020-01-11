@@ -42,6 +42,13 @@ int initMessege(Messege *msg, char *type, char *param1, char *param2, char *para
 
 void getEncodeMessegeLength(Messege *msg, int *encoded_messege_len);
 
+int getLen(char *buffer, int idx, char last_char);
+
+void getSegement(char *dst_buffer, char *src_buffer, int start_idx, char last_idx);
+
+int decodeMsg(char *char_arr, Messege *decoded_msg);
+
+
 void printEncodedMessege(char *encoded_msg);
 
 int encodeMessegeAndSend(Messege *msg, SOCKET sd);

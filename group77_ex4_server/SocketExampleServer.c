@@ -241,6 +241,7 @@ static DWORD ServiceThread( SOCKET *t_socket )
 	BOOL Done = FALSE;
 	TransferResult_t SendRes;
 	TransferResult_t RecvRes;
+	Messege msg_struct;
 
 	strcpy( SendStr, "Welcome to this server!" );
 
@@ -273,29 +274,23 @@ static DWORD ServiceThread( SOCKET *t_socket )
 		}
 		else
 		{
-			printf( "Got string : %s\n", AcceptedStr );
+			
+			decodeMsg(AcceptedStr, &msg_struct);
+			printf("Got messege:\n");
+			printMessege(&msg_struct);
+			
 		}
 
-		//After reading a single line, checking to see what to do with it
-		//If got "hello" send back "what's up?"
-		//If got "how are you?" send back "great"
-		//If got "bye" send back "see ya!" and then end the thread
-		//Otherwise, send "I don't understand"
-		
-		if ( STRINGS_ARE_EQUAL( AcceptedStr , "hello" ) ) 
-			{ strcpy( SendStr, "what's up?" );} 
-		else if ( STRINGS_ARE_EQUAL( AcceptedStr , "how are you?" ) ) 
-			{ strcpy( SendStr, "great" ); }
-		else if ( STRINGS_ARE_EQUAL( AcceptedStr, "bye" )) 
-		{
-			strcpy( SendStr, "see ya!" );
-			Done = TRUE;
-		}
-		else 
-			{ strcpy( SendStr, "I don't understand" ); }
+		// This is where we will use the server state machine
+		// for demo only print do something and send insulting text to client
 
+		printf("now we do something with this messege\n");
+
+		freeMessege(&msg_struct);
+
+		strcpy(SendStr, "I got your messege ass face\n");
 		SendRes = SendString( SendStr, *t_socket );
-	
+		
 		if ( SendRes == TRNS_FAILED ) 
 		{
 			printf( "Service socket error while writing, closing thread.\n" );

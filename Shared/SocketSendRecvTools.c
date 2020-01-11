@@ -45,6 +45,7 @@ int initMsgParam(char *param, Messege *msg, int param_idx)
 
 int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5)
 {
+
 	int ret_val = TRUE;
 
 	// Initializtion
@@ -275,6 +276,7 @@ TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd )
 	TransferResult_t RecvRes;
 	char* StrBuffer = NULL;
 
+
 	if ( ( OutputStrPtr == NULL ) || ( *OutputStrPtr != NULL ) )
 	{
 		printf("The first input to ReceiveString() must be " 
@@ -310,7 +312,7 @@ TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd )
 	{
 		free( StrBuffer );
 	}
-		
+
 	return RecvRes;
 }
 
@@ -326,54 +328,142 @@ int getLen(char *buffer, int idx, char last_char)
 	return len;
 }
 
-void getSegement(char *dst_buffer, char *src_buffer, int *src_idx, char last_char)
+//void getSegement2(char *dst_buffer, char *src_buffer, int *src_idx, char last_char)
+//{
+//	int dst_idx = 0;
+//	int src_idx_local = *src_idx;
+//	for (src_idx_local; src_buffer[src_idx_local] != last_char && src_buffer[src_idx_local] != '\n'; src_idx_local++)
+//	{
+//		dst_buffer[dst_idx] = src_buffer[src_idx_local];
+//		dst_idx++;
+//	}
+//	
+//	if (src_buffer[src_idx_local] != '\n')
+//		src_idx_local++;
+//	
+//	dst_buffer[dst_idx] = '\0';
+//	*src_idx = src_idx_local;
+//	return;
+//}
+
+void getSegement(char *dst_buffer, char *src_buffer, int start_idx, char last_idx)
 {
 	int dst_idx = 0;
-	for (*src_idx; src_buffer[*src_idx] != last_char && src_buffer[*src_idx] != '\n'; *src_idx++)
+	for (int i = start_idx; i < last_idx; i++)
 	{
-		dst_buffer[dst_idx] = src_buffer[*src_idx];
+		dst_buffer[dst_idx] = src_buffer[i];
+		dst_idx++;
 	}
-	dst_buffer[dst_idx] = '\0';
 
+	dst_buffer[dst_idx] = '\0';
 	return;
 }
 
-int decodeMsg(char *char_arr) //, Messege *msg)
+int decodeMsg(char *char_arr, Messege *decoded_msg)
 {
 	int idx = 0;
 	int len = 0;
-	int end = 0;
+	int last_idx = 0;
 	int flag = 1;
-	int buffers_idx = 0;
+	int param_idx = 0;
 	char last_char = ':';
-	char *buffers[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
-	Messege decoded_msg;
 
-	while (char_arr[idx] != '\n')
+	// Initializtion
+	decoded_msg->type = NULL;
+	decoded_msg->num_of_params = 0;
+	for (int i = 0; i < MAX_NUM_OF_PARAMS; i++) {
+		decoded_msg->params[i] = NULL;
+		decoded_msg->params_len_lst[i] = 0;
+	}
+
+	decoded_msg->num_of_params = 0;
+
+	for (idx=0; char_arr[idx]!='\n'; idx++)
 	{
 		// Calc paramter length
 		len = getLen(char_arr, idx, last_char);
-		end = idx + len;
-
+		last_idx = idx + len;
 		// allocate memory
-
 		// first iteration, this is the messege type
 		if (flag)
-			buffers[buffers_idx] = (char*)malloc(len * sizeof(char) + 1);
+		{
+			decoded_msg->type = (char*)malloc((len + 1) * sizeof(char));
+			getSegement(decoded_msg->type, char_arr, idx, last_idx);
+			last_char = ';';
+			flag = 0;
+		}
 
 		// not first iteration, this is a paramter
 		else
-			buffers[buffers_idx] = (char*)malloc(len * sizeof(char) + 1);
+		{
+			decoded_msg->params[param_idx] = (char*)malloc((len + 1) * sizeof(char));
 
-		// update corresponding struct field
-		getSegement(buffers[buffers_idx], char_arr, &idx, last_char);
+			// update corresponding struct field
+			getSegement(decoded_msg->params[param_idx], char_arr, idx, last_idx);
+			decoded_msg->params_len_lst[param_idx] = (int)strlen(decoded_msg->params[param_idx]);
 
-		// update for next iter
-		last_char = ';';
-		buffers_idx++;
+			// update for next iteration
+			param_idx++;
+			decoded_msg->num_of_params++;
+		}
+
+		idx = last_idx;
+		if (char_arr[idx] == '\n')
+			break;
 	}
-	
-	initMessege(&decoded_msg, buffers[0], buffers[1], buffers[2], buffers[3], buffers[4], buffers[5]);
+
+
 
 	return TRUE;
 }
+
+//int decodeMsg2(char *char_arr, Messege *decoded_msg)
+//{
+//	int idx = 0;
+//	int len = 0;
+//	int end = 0;
+//	int flag = 1;
+//	int param_idx = 0;
+//	char last_char = ':';
+//
+//	initMessege(decoded_msg, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+//	
+//	decoded_msg->num_of_params = 0;
+//	
+//	while (char_arr[idx] != '\n')
+//	{
+//		// Calc paramter length
+//		len = getLen(char_arr, idx, last_char);
+//		end = idx + len;
+//		// allocate memory
+//
+//		// first iteration, this is the messege type
+//		if (flag)
+//		{
+//			decoded_msg->type = (char*)malloc((len + 1) * sizeof(char));
+//			getSegement(decoded_msg->type, char_arr, &idx, last_char);
+//			last_char = ';';
+//			flag = 0;
+//		}
+//		
+//		// not first iteration, this is a paramter
+//		else
+//		{
+//			decoded_msg->params[param_idx] = (char*)malloc((len + 1) * sizeof(char));
+//			
+//			// update corresponding struct field
+//			getSegement(decoded_msg->params[param_idx], char_arr, &idx, last_char);
+//			decoded_msg->params_len_lst[param_idx] = (int)strlen(decoded_msg->params[param_idx]);
+//
+//			// update for next iteration
+//			param_idx++;
+//			decoded_msg->num_of_params++;
+//		}	
+//		
+//		
+//	}
+//
+//	
+//
+//	return TRUE;
+//}
