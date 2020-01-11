@@ -47,6 +47,6 @@ void printMsg(Messege *msg)
 
 	}
 	else
-		printf("seems we don't handle this message type: %s", msg->type)
+		printf("seems we don't handle this message type: %s", msg->type);
 
 }

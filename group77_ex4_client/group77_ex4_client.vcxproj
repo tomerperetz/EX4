@@ -124,6 +124,7 @@
     <ClCompile Include="..\Shared\lib_str_func.c" />
     <ClCompile Include="..\Shared\SocketSendRecvTools.c" />
     <ClCompile Include="client_main.c" />
+    <ClCompile Include="client_services.c" />
     <ClCompile Include="SocketExampleClient.c" />
   </ItemGroup>
   <ItemGroup>
@@ -134,6 +135,7 @@
     <ClInclude Include="..\Shared\lib_str_func.h" />
     <ClInclude Include="..\Shared\SocketExampleShared.h" />
     <ClInclude Include="..\Shared\SocketSendRecvTools.h" />
+    <ClInclude Include="client_services.h" />
     <ClInclude Include="SocketExampleClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
