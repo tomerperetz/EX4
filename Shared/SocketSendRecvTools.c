@@ -12,6 +12,7 @@ void printMessege(Messege *msg)
 		printf("Param %d: %s, Len: %d\n", i, msg->params[i], msg->params_len_lst[i]);
 	}
 }
+
 void freeMessege(Messege *msg) 
 {
 	if (msg->type != NULL) {
@@ -26,6 +27,7 @@ void freeMessege(Messege *msg)
 	}
 	msg->num_of_params = 0;
 }
+
 int initMsgParam(char *param, Messege *msg, int param_idx) 
 {
 	if (param == NULL) {
@@ -91,7 +93,6 @@ MAIN_CLEAN_UP:
 	return ret_val;	
 }
 
-
 void getEncodeMessegeLength(Messege msg, int *encoded_messege_len)
 {
 	*encoded_messege_len = (int) strlen(msg.type) + 1;
@@ -101,7 +102,6 @@ void getEncodeMessegeLength(Messege msg, int *encoded_messege_len)
 		*encoded_messege_len = (int) strlen(msg.params[idx]) + 1;
 	}
 }
-
 
 int encodeMessegeAndSend(Messege msg)
 {
@@ -270,10 +270,12 @@ void getSegement(char *dst_buffer, char *src_buffer, int *src_idx, char last_cha
 	{
 		dst_buffer[dst_idx] = src_buffer[*src_idx];
 	}
+	dst_buffer[dst_idx] = '\0';
+
 	return;
 }
 
-int decodeMsg(char *char_arr, Messege *msg)
+int decodeMsg(char *char_arr) //, Messege *msg)
 {
 	int idx = 0;
 	int len = 0;
@@ -282,6 +284,7 @@ int decodeMsg(char *char_arr, Messege *msg)
 	int buffers_idx = 0;
 	char last_char = ':';
 	char *buffers[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+	Messege decoded_msg;
 
 	while (char_arr[idx] != '\n')
 	{
@@ -293,11 +296,11 @@ int decodeMsg(char *char_arr, Messege *msg)
 
 		// first iteration, this is the messege type
 		if (flag)
-			buffers[buffers_idx] = (char*)malloc(len * sizeof(char));
+			buffers[buffers_idx] = (char*)malloc(len * sizeof(char) + 1);
 
 		// not first iteration, this is a paramter
 		else
-			buffers[buffers_idx] = (char*)malloc(len * sizeof(char));
+			buffers[buffers_idx] = (char*)malloc(len * sizeof(char) + 1);
 
 		// update corresponding struct field
 		getSegement(buffers[buffers_idx], char_arr, &idx, last_char);
@@ -306,6 +309,8 @@ int decodeMsg(char *char_arr, Messege *msg)
 		last_char = ';';
 		buffers_idx++;
 	}
+	
+	initMessege(&decoded_msg, buffers[0], buffers[1], buffers[2], buffers[3], buffers[4], buffers[5]);
 
 	return TRUE;
 }
