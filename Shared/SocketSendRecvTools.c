@@ -5,7 +5,7 @@
  University, School of Electrical Engineering, Winter 2011, 
  by Amnon Drory, based on example code by Johnson M. Hart.
 */
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+/*oOoOoOoOoOoOooOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 #include "SocketSendRecvTools.h"
 
@@ -138,4 +138,63 @@ TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd )
 	}
 		
 	return RecvRes;
+}
+
+/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+
+int getLen(char *buffer, int idx, char last_char)
+{
+	int len = 0;
+	for (idx; buffer[idx] != last_char & buffer[idx] != '\n'; idx++)
+	{
+		len++;
+	}
+	return len;
+}
+
+void getSegement(char *dst_buffer, char *src_buffer, int *src_idx, char last_char)
+{
+	int dst_idx = 0;
+	for (*src_idx; src_buffer[*src_idx] != last_char & src_buffer[*src_idx] != '\n'; *src_idx++)
+	{
+		dst_buffer[dst_idx] = src_buffer[*src_idx];
+	}
+	return;
+}
+
+int decodeMsg(char *char_arr, Messege *msg)
+{
+	int idx = 0;
+	int len = 0;
+	int end = 0;
+	int flag = 1;
+	int buffers_idx = 0;
+	char last_char = ':';
+	char *buffers[6] = { NULL, NULL, NULL, NULL, NULL, NULL };
+
+	while (char_arr[idx] != '\n')
+	{
+		// Calc paramter length
+		len = getLen(char_arr, idx, last_char);
+		end = idx + len;
+
+		// allocate memory
+
+		// first iteration, this is the messege type
+		if (flag)
+			buffers[buffers_idx] = (char*)malloc(len * sizeof(char));
+
+		// not first iteration, this is a paramter
+		else
+			buffers[buffers_idx] = (char*)malloc(len * sizeof(char));
+
+		// update corresponding struct field
+		getSegement(buffers[buffers_idx], char_arr, &idx, last_char);
+
+		// update for next iter
+		last_char = ';';
+		buffers_idx++;
+	}
+
+	return TRUE;
 }

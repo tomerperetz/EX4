@@ -27,6 +27,7 @@ Hard coded data: includes and defines
 #include "lib_errorHandler.h"
 #include "lib_osHandler.h"
 #include "lib_str_func.h"
+#include "SocketSendRecvTools.h"
 
 // Consts ----------------------------------------------------->
 static const int ERR = -1;
@@ -36,3 +37,5 @@ static const char END_OF_MSG = '\n';
 
 //defines ----------------------------------------------------->
 #define NAME_MAX_LEN 20
+#define SERVER_EXPECTED_ARGC 1
+#define CLIENT_EXPECTED_ARGC 3

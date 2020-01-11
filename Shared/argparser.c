@@ -19,16 +19,17 @@ int ensureArgs(int argc, int expected_argc, char *argv[])
 	Returns: IS_TRUE if the args are valid, ERR o.w
 	*/
 
+	expected_argc++;
+
 	if (argc == 2 && (strcmp(argv[1], "-h") == EQUAL || strcmp(argv[1], "--help") == EQUAL) )
 	{
 		callHelper();
 		return EXIT0;
 	}
-	else if (argc == expected_argc){
-		if (isArgsValid(argc, argv) == TRUE)
-			return TRUE;
-		else
-			return ERR;
+
+	else if (argc == expected_argc)
+	{
+		return TRUE;
 	}
 	else {
 		return ERR;
@@ -54,7 +55,7 @@ int isArgsValid(int argc, char *argv[])
 	/*
 	Description: future function for this lib. will be used in the following projects for more complexed inputs.
 	*/
-	if (isDirectory(argv[1]) != TRUE)
+	if (strlen(argv[1]) != 4)
 	{
 		return ERR;
 	}
