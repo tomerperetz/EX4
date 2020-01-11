@@ -239,46 +239,17 @@ static DWORD ServiceThread( SOCKET *t_socket )
 	char SendStr[SEND_STR_SIZE];
 
 	BOOL Done = FALSE;
-	TransferResult_t SendRes;
-	TransferResult_t RecvRes;
-
-
 	strcpy( SendStr, "Welcome to this server!" );
-
-	//SendRes = SendString( SendStr, *t_socket );
-	//
-	//if ( SendRes == TRNS_FAILED ) 
-	//{
-	//	printf( "Service socket error while writing, closing thread.\n" );
-	//	closesocket( *t_socket );
-	//	return 1;
-	//}
 	
 	sendMessegeWrapper(*t_socket, "welcome_msg",NULL, NULL, NULL, NULL, NULL);
 
 	while ( !Done ) 
 	{		
-		char *AcceptedStr = NULL;
+		
 		Messege msg_struct;
+		decodeWrapper(&msg_struct, t_socket);
+		printMessege(&msg_struct);	
 
-		RecvRes = ReceiveString( &AcceptedStr , *t_socket );
-		if ( RecvRes == TRNS_FAILED )
-		{
-			printf( "Service socket error while reading, closing thread.\n" );
-			closesocket( *t_socket );
-			return 1;
-		}
-		else if ( RecvRes == TRNS_DISCONNECTED )
-		{
-			printf( "Connection closed while reading, closing thread.\n" );
-			closesocket( *t_socket );
-			return 1;
-		}
-		else
-		{
-			decodeMsg(AcceptedStr, &msg_struct);
-			printMessege(&msg_struct);	
-		}
 
 		// This is where we will use the server state machine
 		// for demo only print do something and send insulting text to client
@@ -289,17 +260,6 @@ static DWORD ServiceThread( SOCKET *t_socket )
 
 		sendMessegeWrapper(*t_socket, "ServiceThread_type", "param1", "param2", "param3",
 			"param4", "param5");
-
-	/*	SendRes = SendString( SendStr, *t_socket );
-		
-		if ( SendRes == TRNS_FAILED ) 
-		{
-			printf( "Service socket error while writing, closing thread.\n" );
-			closesocket( *t_socket );
-			return 1;
-		}*/
-
-		free( AcceptedStr );
 		freeMessege(&msg_struct);
 	}
 	

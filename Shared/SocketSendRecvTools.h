@@ -57,6 +57,8 @@ int calcCharLstLen(const char* Buffer);
 
 int sendMessegeWrapper(SOCKET sd, char *type, char *param1, char *param2, char *param3,
 	char *param4, char *param5);
+
+int decodeWrapper(Messege *msg, SOCKET *socket);
 /**
  * SendBuffer() uses a socket to send a buffer.
  *

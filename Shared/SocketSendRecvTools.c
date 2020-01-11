@@ -422,6 +422,31 @@ int decodeMsg(char *char_arr, Messege *decoded_msg)
 	return TRUE;
 }
 
+int decodeWrapper(Messege *msg, SOCKET *socket) {
+	char *AcceptedStr = NULL;
+	TransferResult_t RecvRes;
+
+	RecvRes = ReceiveString(&AcceptedStr, *socket);
+	if (RecvRes == TRNS_FAILED)
+	{
+		printf("Service socket error while reading, closing thread.\n");
+		closesocket(*socket);
+		return ERR;
+	}
+	else if (RecvRes == TRNS_DISCONNECTED)
+	{
+		printf("Connection closed while reading, closing thread.\n");
+		closesocket(*socket);
+		return ERR;
+	}
+	else
+	{
+		decodeMsg(AcceptedStr, msg);
+	}
+	free(AcceptedStr);
+	return TRUE;
+}
+
 //int decodeMsg2(char *char_arr, Messege *decoded_msg)
 //{
 //	int idx = 0;
