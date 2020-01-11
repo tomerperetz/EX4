@@ -22,7 +22,7 @@ int ensureArgs(int argc, int expected_argc, char *argv[])
 	if (argc == 2 && (strcmp(argv[1], "-h") == EQUAL || strcmp(argv[1], "--help") == EQUAL) )
 	{
 		callHelper();
-		return TRUE;
+		return EXIT0;
 	}
 	else if (argc == expected_argc){
 		if (isArgsValid(argc, argv) == TRUE)
@@ -69,5 +69,4 @@ void callHelper() {
 	*/
 
 	printf(HELPER);
-	exit(FALSE);
 }

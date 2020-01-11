@@ -33,9 +33,6 @@
     <ClCompile Include="..\Shared\lib_errorHandler.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\lib_fileHandler.c">
-      <Filter>Shared Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\lib_osHandler.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
@@ -57,9 +54,6 @@
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\lib_errorHandler.h">
-      <Filter>Shared Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\lib_fileHandler.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\lib_osHandler.h">
