@@ -14,8 +14,9 @@ Last updated by Amnon Drory, Winter 2011.
 #include <string.h>
 #include <winsock2.h>
 
-#include "SocketExampleShared.h"
-#include "SocketSendRecvTools.h"
+#include "SocketExampleServer.h"
+#include "../Shared/SocketExampleShared.h"
+#include "../Shared/SocketSendRecvTools.h"
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 

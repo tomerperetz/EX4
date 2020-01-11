@@ -22,11 +22,11 @@ int ensureArgs(int argc, int expected_argc, char *argv[])
 	if (argc == 2 && (strcmp(argv[1], "-h") == EQUAL || strcmp(argv[1], "--help") == EQUAL) )
 	{
 		callHelper();
-		return IS_TRUE;
+		return TRUE;
 	}
 	else if (argc == expected_argc){
-		if (isArgsValid(argc, argv) == IS_TRUE)
-			return IS_TRUE;
+		if (isArgsValid(argc, argv) == TRUE)
+			return TRUE;
 		else
 			return ERR;
 	}
@@ -46,7 +46,7 @@ int isDirectory(const char *path) {
 	struct stat statbuf;
 	if (stat(path, &statbuf) != 0)
 		return ERR;
-	return IS_TRUE;
+	return TRUE;
 }
 
 int isArgsValid(int argc, char *argv[])
@@ -54,11 +54,11 @@ int isArgsValid(int argc, char *argv[])
 	/*
 	Description: future function for this lib. will be used in the following projects for more complexed inputs.
 	*/
-	if (isDirectory(argv[1]) != IS_TRUE)
+	if (isDirectory(argv[1]) != TRUE)
 	{
 		return ERR;
 	}
-	return IS_TRUE;
+	return TRUE;
 }
 
 void callHelper() {
@@ -69,5 +69,5 @@ void callHelper() {
 	*/
 
 	printf(HELPER);
-	exit(IS_FALSE);
+	exit(FALSE);
 }
