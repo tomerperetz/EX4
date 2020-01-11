@@ -12,6 +12,7 @@ this lib is a parser for arguments recieved from user.
 #include "hardCodedData.h"
 #include <sys/stat.h>
 
+#define EXIT0 100
 static const int EXPECTED_ARGC = 2;
 static const char HELPER[1000] = \
 "===========================================================================================\n"\
