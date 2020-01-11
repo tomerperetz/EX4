@@ -28,9 +28,11 @@ SOCKET m_socket;
 static DWORD RecvDataThread(void)
 {
 	TransferResult_t RecvRes;
+	
 
 	while (1) 
 	{
+		Messege msg;
 		char *AcceptedStr = NULL;
 		RecvRes = ReceiveString( &AcceptedStr , m_socket );
 
@@ -46,10 +48,13 @@ static DWORD RecvDataThread(void)
 		}
 		else
 		{
-			printf("%s\n",AcceptedStr);
+
+			decodeMsg(AcceptedStr, &msg);
+			printMessege(&msg);
 		}
 		
 		free(AcceptedStr);
+		freeMessege(&msg);
 	}
 
 	return 0;
@@ -61,7 +66,7 @@ static DWORD RecvDataThread(void)
 static DWORD SendDataThread(void)
 {
 	char SendStr[256];
-	TransferResult_t SendRes;
+	//TransferResult_t SendRes;
 
 	while (1) 
 	{
@@ -70,13 +75,17 @@ static DWORD SendDataThread(void)
 		if ( STRINGS_ARE_EQUAL(SendStr,"quit") ) 
 			return 0x555; //"quit" signals an exit from the client side
 		
-		SendRes = SendString( SendStr, m_socket);
-	
-		if ( SendRes == TRNS_FAILED ) 
-		{
-			printf("Socket error while trying to write data to socket\n");
-			return 0x555;
-		}
+		// Old send implementation from class
+
+		//SendRes = SendString( SendStr, m_socket);
+		//	
+		//if ( SendRes == TRNS_FAILED ) 
+		//{
+		//	printf("Socket error while trying to write data to socket\n");
+		//	return 0x555;
+		//}
+
+		sendMessegeWrapper(m_socket, "SendDataThread_type", "param1", "param2", "param3", "param4", "param5");
 	}
 }
 

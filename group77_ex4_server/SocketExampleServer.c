@@ -241,25 +241,27 @@ static DWORD ServiceThread( SOCKET *t_socket )
 	BOOL Done = FALSE;
 	TransferResult_t SendRes;
 	TransferResult_t RecvRes;
-	Messege msg_struct;
+
 
 	strcpy( SendStr, "Welcome to this server!" );
 
-	SendRes = SendString( SendStr, *t_socket );
+	//SendRes = SendString( SendStr, *t_socket );
+	//
+	//if ( SendRes == TRNS_FAILED ) 
+	//{
+	//	printf( "Service socket error while writing, closing thread.\n" );
+	//	closesocket( *t_socket );
+	//	return 1;
+	//}
 	
-	if ( SendRes == TRNS_FAILED ) 
-	{
-		printf( "Service socket error while writing, closing thread.\n" );
-		closesocket( *t_socket );
-		return 1;
-	}
-	
+	sendMessegeWrapper(*t_socket, "welcome_msg",NULL, NULL, NULL, NULL, NULL);
+
 	while ( !Done ) 
 	{		
 		char *AcceptedStr = NULL;
-		
-		RecvRes = ReceiveString( &AcceptedStr , *t_socket );
+		Messege msg_struct;
 
+		RecvRes = ReceiveString( &AcceptedStr , *t_socket );
 		if ( RecvRes == TRNS_FAILED )
 		{
 			printf( "Service socket error while reading, closing thread.\n" );
@@ -274,33 +276,33 @@ static DWORD ServiceThread( SOCKET *t_socket )
 		}
 		else
 		{
-			
 			decodeMsg(AcceptedStr, &msg_struct);
-			printf("Got messege:\n");
-			printMessege(&msg_struct);
-			
+			printMessege(&msg_struct);	
 		}
 
 		// This is where we will use the server state machine
 		// for demo only print do something and send insulting text to client
 
-		printf("now we do something with this messege\n");
+		printf("#########################################\n\n");
+		printf("This is the state machine \n\n");
+		printf("#########################################\n\n");
 
-		freeMessege(&msg_struct);
+		sendMessegeWrapper(*t_socket, "ServiceThread_type", "param1", "param2", "param3",
+			"param4", "param5");
 
-		strcpy(SendStr, "I got your messege ass face\n");
-		SendRes = SendString( SendStr, *t_socket );
+	/*	SendRes = SendString( SendStr, *t_socket );
 		
 		if ( SendRes == TRNS_FAILED ) 
 		{
 			printf( "Service socket error while writing, closing thread.\n" );
 			closesocket( *t_socket );
 			return 1;
-		}
+		}*/
 
-		free( AcceptedStr );		
+		free( AcceptedStr );
+		freeMessege(&msg_struct);
 	}
-
+	
 	printf("Conversation ended.\n");
 	closesocket( *t_socket );
 	return 0;

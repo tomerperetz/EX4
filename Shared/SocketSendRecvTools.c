@@ -75,15 +75,15 @@ int initMessege(Messege *msg, char *type, char *param1, char *param2, char *para
 		ret_val = ERR;
 		goto MAIN_CLEAN_UP;
 	}
-	if (initMsgParam(param3, msg, 3) != TRUE) {
+	if (initMsgParam(param3, msg, 2) != TRUE) {
 		ret_val = ERR;
 		goto MAIN_CLEAN_UP;
 	}
-	if (initMsgParam(param4, msg, 4) != TRUE) {
+	if (initMsgParam(param4, msg, 3) != TRUE) {
 		ret_val = ERR;
 		goto MAIN_CLEAN_UP;
 	}
-	if (initMsgParam(param5, msg, 5) != TRUE) {
+	if (initMsgParam(param5, msg, 4) != TRUE) {
 		ret_val = ERR;
 		goto MAIN_CLEAN_UP;
 	}
@@ -148,6 +148,8 @@ int encodeMessegeAndSend(Messege *msg, SOCKET socket)
 		ret_val = ERR;
 		goto MAIN_CLEAN_UP2;
 	}
+
+
 MAIN_CLEAN_UP1:
 	if (ret_val == ERR) {
 		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
@@ -183,9 +185,12 @@ int sendMessegeWrapper(SOCKET socket, char *type, char *param1, char *param2, ch
 	if (ret_val != TRUE) {
 		return ERR;
 	}
+
 	ret_val = encodeMessegeAndSend(&msg, socket);
 	freeMessege(&msg);
+	
 	return ret_val;
+	
 }
 
 TransferResult_t SendBuffer( const char* Buffer, int BytesToSend, SOCKET sd )
