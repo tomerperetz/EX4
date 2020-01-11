@@ -1,18 +1,130 @@
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-/* 
- This file was written for instruction purposes for the 
- course "Introduction to Systems Programming" at Tel-Aviv
- University, School of Electrical Engineering, Winter 2011, 
- by Amnon Drory, based on example code by Johnson M. Hart.
-*/
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 #include "SocketSendRecvTools.h"
 
-#include <stdio.h>
-#include <string.h>
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+void printMessege(Messege *msg)
+{
+	if (msg->type == NULL) return;
+	printf("Type: %s\n", msg->type);
+	printf("Number of Parameters: %d\n", msg->num_of_params);
+	for (int i = 0; i < MAX_NUM_OF_PARAMS; i++) {
+		if (msg->params[i] == NULL) return;
+		printf("Param %d: %s, Len: %d\n", i, msg->params[i], msg->params_len_lst[i]);
+	}
+}
+void freeMessege(Messege *msg) 
+{
+	if (msg->type != NULL) {
+		free(msg->type);
+	}
+
+	for (int i = 0; i < MAX_NUM_OF_PARAMS; i++) {
+		if (msg->params[i] != NULL) {
+			free(msg->params[i]);
+			msg->params_len_lst[i] = 0;
+		}	
+	}
+	msg->num_of_params = 0;
+}
+int initMsgParam(char *param, Messege *msg, int param_idx) 
+{
+	if (param == NULL) {
+		return TRUE;
+	}
+	msg->params[param_idx] = (char*)malloc((strlen(param) + 1) * sizeof(char));
+	if (msg->params[param_idx] == NULL) {
+		return ERR;
+	}
+	strcpy_s(msg->params[param_idx], (strlen(param) + 1) * sizeof(char),param);
+	msg->params_len_lst[param_idx] = (int) strlen(param);
+	msg->num_of_params += 1;
+	return TRUE;
+}
+
+int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5)
+{
+	int size_to_aloocate = 0, ret_val = TRUE;
+	if (type == NULL)
+		return ERR;
+	// Initializtion
+	msg->type = NULL;
+	msg->num_of_params = 0;
+	for (int i = 0; i < MAX_NUM_OF_PARAMS; i++) {
+		msg->params[i] = NULL;
+		msg->params_len_lst[i] = 0;
+	}
+	
+	msg->type = (char*) malloc((strlen(type) + 1) * sizeof(char));
+	if (msg->type == NULL) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP;
+	}
+	
+	strcpy_s(msg->type, (strlen(type)+1) * sizeof(char),type);
+	
+	if (initMsgParam(param1, msg, 0) != TRUE) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP;
+	}
+
+	if (initMsgParam(param2, msg, 1) != TRUE) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP;
+	}
+	if (initMsgParam(param3, msg, 3) != TRUE) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP;
+	}
+	if (initMsgParam(param4, msg, 4) != TRUE) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP;
+	}
+	if (initMsgParam(param5, msg, 5) != TRUE) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP;
+	}
+MAIN_CLEAN_UP:
+	if (ret_val == ERR) {
+		freeMessege(msg);
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+	}
+	return ret_val;	
+}
+
+
+void getEncodeMessegeLength(Messege msg, int *encoded_messege_len)
+{
+	*encoded_messege_len = (int) strlen(msg.type) + 1;
+	for (int idx = 0; idx < MAX_NUM_OF_PARAMS; idx++) {
+		if (msg.params_len_lst[idx] == 0)
+			break;
+		*encoded_messege_len = (int) strlen(msg.params[idx]) + 1;
+	}
+}
+
+
+int encodeMessegeAndSend(Messege msg)
+{
+	char *encoded_messege;
+	BOOL continue_flag = TRUE;
+	int encoded_messege_len = 0;
+	getEncodeMessegeLength(msg, &encoded_messege_len);
+	encoded_messege = (char*) malloc (sizeof(char)*encoded_messege_len);
+	return TRUE;
+}
+
+int calcCharLstLen(const char* Buffer) 
+{
+	const char* CurPlacePtr = Buffer;
+	int len = 0;
+	if (CurPlacePtr == NULL) return ERR;
+	while (*CurPlacePtr != '\n') {
+		len += 1;
+		CurPlacePtr += 1;
+	}
+	return len + 1;
+}
 
 TransferResult_t SendBuffer( const char* Buffer, int BytesToSend, SOCKET sd )
 {

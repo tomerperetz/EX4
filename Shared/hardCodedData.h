@@ -18,6 +18,7 @@ Hard coded data: includes and defines
 // Includes --------------------------------------------------->
 #include <stdio.h>	
 #include <string.h>
+#include <stdlib.h>
 #include <windows.h>
 #include <sys/stat.h>
 #include <winsock2.h>
@@ -27,9 +28,11 @@ Hard coded data: includes and defines
 #include "lib_errorHandler.h"
 #include "lib_osHandler.h"
 #include "lib_str_func.h"
+#include "SocketSendRecvTools.h"
+#include "../group77_ex4_server/SocketExampleServer.h"
 
 // Consts ----------------------------------------------------->
-static const int ERR = -1;
+#define ERR -1
 static const int EQUAL = 0;
 static const char END_OF_STR = '\0';
 static const char END_OF_MSG = '\n';

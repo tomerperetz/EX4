@@ -9,16 +9,29 @@
 
 #ifndef SOCKET_SEND_RECV_TOOLS_H
 #define SOCKET_SEND_RECV_TOOLS_H
-
+#define MAX_NUM_OF_PARAMS 5
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
-
+#include "./hardCodedData.h"
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 typedef enum { TRNS_FAILED, TRNS_DISCONNECTED, TRNS_SUCCEEDED } TransferResult_t;
 
+typedef struct _Messege
+{
+	char *type;
+	int num_of_params;
+	char *params[5];
+	int params_len_lst[MAX_NUM_OF_PARAMS];
+} Messege;
+
+void printMessege(Messege *msg);
+void freeMessege(Messege *msg);
+int initMsgParam(char *param, Messege *msg, int param_idx);
+int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5);
+int calcCharLstLen(const char* Buffer);
 /**
  * SendBuffer() uses a socket to send a buffer.
  *

@@ -22,7 +22,7 @@ int strcatDynamic(const char first_source[], const char second_source[], char **
 
 	int retVal1 = ERR, retVal2 = ERR, size_of_file_path = 0;
 
-	size_of_file_path = (strlen(first_source) + strlen(second_source) + 1);
+	size_of_file_path = ((int) strlen(first_source) + (int) strlen(second_source) + 1);
 	*buffer = (char*)malloc(sizeof(char)*size_of_file_path);
 	if (*buffer == NULL) {
 		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
