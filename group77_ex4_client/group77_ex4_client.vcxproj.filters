@@ -36,9 +36,6 @@
     <ClCompile Include="..\Shared\lib_osHandler.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Shared\lib_str_func.c">
-      <Filter>Shared Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\SocketSendRecvTools.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
@@ -60,9 +57,6 @@
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\lib_osHandler.h">
-      <Filter>Shared Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Shared\lib_str_func.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Shared\SocketExampleShared.h">

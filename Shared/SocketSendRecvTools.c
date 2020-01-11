@@ -256,7 +256,7 @@ TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd )
 int getLen(char *buffer, int idx, char last_char)
 {
 	int len = 0;
-	for (idx; buffer[idx] != last_char & buffer[idx] != '\n'; idx++)
+	for (idx; buffer[idx] != last_char && buffer[idx] != '\n'; idx++)
 	{
 		len++;
 	}
@@ -266,7 +266,7 @@ int getLen(char *buffer, int idx, char last_char)
 void getSegement(char *dst_buffer, char *src_buffer, int *src_idx, char last_char)
 {
 	int dst_idx = 0;
-	for (*src_idx; src_buffer[*src_idx] != last_char & src_buffer[*src_idx] != '\n'; *src_idx++)
+	for (*src_idx; src_buffer[*src_idx] != last_char && src_buffer[*src_idx] != '\n'; *src_idx++)
 	{
 		dst_buffer[dst_idx] = src_buffer[*src_idx];
 	}

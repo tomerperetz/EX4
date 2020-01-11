@@ -12,7 +12,7 @@ Description:
 
 // Includes --------------------------------------------------------------------
 #include "../Shared/hardCodedData.h"
-#include "SocketExampleServer.h"
+
 
 // Functions --------------------------------------------------------------------
 int main(int argc, char *argv[])

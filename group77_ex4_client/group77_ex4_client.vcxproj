@@ -121,7 +121,6 @@
     <ClCompile Include="..\Shared\argparser.c" />
     <ClCompile Include="..\Shared\lib_errorHandler.c" />
     <ClCompile Include="..\Shared\lib_osHandler.c" />
-    <ClCompile Include="..\Shared\lib_str_func.c" />
     <ClCompile Include="..\Shared\SocketSendRecvTools.c" />
     <ClCompile Include="client_main.c" />
     <ClCompile Include="client_services.c" />
@@ -132,7 +131,6 @@
     <ClInclude Include="..\Shared\hardCodedData.h" />
     <ClInclude Include="..\Shared\lib_errorHandler.h" />
     <ClInclude Include="..\Shared\lib_osHandler.h" />
-    <ClInclude Include="..\Shared\lib_str_func.h" />
     <ClInclude Include="..\Shared\SocketExampleShared.h" />
     <ClInclude Include="..\Shared\SocketSendRecvTools.h" />
     <ClInclude Include="client_services.h" />

@@ -30,7 +30,15 @@ typedef struct _Messege
 	int params_len_lst[MAX_NUM_OF_PARAMS];
 } Messege;
 
+
+
+
 // Declerations ----------------------------------------------------------------->
+void printMessege(Messege *msg);
+void freeMessege(Messege *msg);
+int initMsgParam(char *param, Messege *msg, int param_idx);
+int initMessege(Messege *msg, char *type, char *param1, char *param2, char *param3, char *param4, char *param5);
+
 
 /**
  * SendBuffer() uses a socket to send a buffer.

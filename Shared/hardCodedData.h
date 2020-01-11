@@ -26,8 +26,9 @@ Hard coded data: includes and defines
 #include "argparser.h"
 #include "lib_errorHandler.h"
 #include "lib_osHandler.h"
-#include "lib_str_func.h"
 #include "SocketSendRecvTools.h"
+#include "../group77_ex4_server/SocketExampleServer.h"
+
 
 // Consts ----------------------------------------------------->
 static const int ERR = -1;
