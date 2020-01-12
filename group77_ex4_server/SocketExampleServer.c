@@ -237,17 +237,22 @@ static void CleanupWorkerThreads()
 static DWORD ServiceThread( SOCKET *t_socket ) 
 {
 	char SendStr[SEND_STR_SIZE];
-
+	int ret_val = TRUE;
 	BOOL Done = FALSE;
 	strcpy( SendStr, "Welcome to this server!" );
 	
-	sendMessegeWrapper(*t_socket, "welcome_msg",NULL, NULL, NULL, NULL, NULL);
-
+	ret_val = sendMessegeWrapper(*t_socket, "welcome_msg",NULL, NULL, NULL, NULL, NULL);
+	if (ret_val == ERR) {
+		/*TO DO*/
+	}
 	while ( !Done ) 
 	{		
 		
 		Messege msg_struct;
-		decodeWrapper(&msg_struct, t_socket);
+		ret_val = decodeWrapper(&msg_struct, t_socket);
+		if (ret_val == ERR) {
+			/*TO DO*/
+		}
 		printMessege(&msg_struct);	
 
 

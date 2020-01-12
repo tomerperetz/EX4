@@ -27,36 +27,23 @@ SOCKET m_socket;
 //Reading data coming from the server
 static DWORD RecvDataThread(void)
 {
-	TransferResult_t RecvRes;
-	
-
-	while (1) 
+	int ret_val = TRUE;
+	while (1)
 	{
-		Messege msg;
-		char *AcceptedStr = NULL;
-		RecvRes = ReceiveString( &AcceptedStr , m_socket );
 
-		if ( RecvRes == TRNS_FAILED )
-		{
-			printf("Socket error while trying to write data to socket\n");
-			return 0x555;
+		Messege msg_struct;
+		ret_val = decodeWrapper(&msg_struct, &m_socket);
+		if (ret_val == ERR) {
+			/*TO DO*/
 		}
-		else if ( RecvRes == TRNS_DISCONNECTED )
-		{
-			printf("Server closed connection. Bye!\n");
-			return 0x555;
-		}
-		else
-		{
-
-			decodeMsg(AcceptedStr, &msg);
-			printMessege(&msg);
-		}
-		
-		free(AcceptedStr);
-		freeMessege(&msg);
+		printMessege(&msg_struct);
+		// This is where we will use the server state machine
+		// for demo only print do something and send insulting text to client
+		printf("#########################################\n\n");
+		printf("This is the state machine \n\n");
+		printf("#########################################\n\n");
+		freeMessege(&msg_struct);
 	}
-
 	return 0;
 }
 

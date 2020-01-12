@@ -3,7 +3,7 @@
 #include "../Shared/hardCodedData.h"
 
 // Hardcoded messages
-static const char CONNECTION_SUCCEEDED[100] = "Connected to server on %s:%s\n";
+#define CONNECTION_SUCCEEDED  "Connected to server on %s:%s\n"
 static const char CONNECTION_FAILED[100] = "Failed connecting to server on %s:%s.\n"\
 												"Choose what to do next:\n"\
 												"1.	Try to reconnect\n"\
@@ -12,7 +12,8 @@ static const char CONNECTION_LOST[150] = "Failed connecting to server on %s:%s h
 										"Choose what to do next:\n"\
 										"1.	Try to reconnect\n"\
 										"2. Exit\n";
-static const char SERVER_APPROVED[100] = "Connection to server on %s:%s APPROVED\n";
+static const char SERVER_APPROVED[100] = "SERVER_APPROVED";
+static const char SERVER_APPROVED_MSG[100] = "Connection to server on %s:%s APPROVED\n";
 static const char SERVER_DENIED[150] = "Server on %s:%s denied the connection request\n"\
 											"Choose what to do next:\n"\
 											"1.	Try to reconnect\n"\
