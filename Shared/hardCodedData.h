@@ -41,3 +41,7 @@ static const char END_OF_MSG = '\n';
 #define NAME_MAX_LEN 20
 #define SERVER_EXPECTED_ARGC 1
 #define CLIENT_EXPECTED_ARGC 3
+
+#define CONNECTED 0
+#define RECONNECT 1
+#define EXIT_PROGRAM 2

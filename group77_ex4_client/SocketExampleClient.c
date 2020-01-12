@@ -77,12 +77,52 @@ static DWORD SendDataThread(void)
 }
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+char *getUserAnswer(FILE* fp)
+{
+	//The size is extended by the input with the value of the provisional
+	char *str;
+	int ch;
+	size_t len = 0;
+	size_t size = 10;
+	str = realloc(NULL, sizeof(char)*size);//size is start size
+	if (str == NULL) return str;
+	while (EOF != (ch = fgetc(fp)) && ch != '\n') {
+		str[len++] = ch;
+		if (len == size) {
+			str = realloc(str, sizeof(char)*(size += 16));
+			if (str == NULL) return str;
+		}
+	}
+	str[len++] = '\0';
 
+	return realloc(str, sizeof(char)*len);
+}
+
+void tryToReconnect(int *answer)
+{
+	char *user_answer;
+	BOOL done = FALSE;
+	do {
+		printf("Choose what to do next:\n");
+		printf("1. Try to reconnect\n");
+		printf("2. Exit\n");
+		user_answer = getUserAnswer(stdin);
+		if (user_answer == NULL) {
+			raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+			*answer = ERR;
+		}
+		if (strcmp(user_answer, "1") == EQUAL || strcmp(user_answer, "2") == EQUAL) {
+			done = TRUE;
+			*answer = atoi(user_answer);
+		}
+		free(user_answer);
+	} while (!done);
+}
 void MainClient(char *ip_addres, char *port_num_char)
 {
 	SOCKADDR_IN clientService;
 	HANDLE hThread[2];
-
+	int try_to_reconnect_answer;
     // Initialize Winsock.
     WSADATA wsaData; //Create a WSADATA object called wsaData.
 	//The WSADATA structure contains information about the Windows Sockets implementation.
@@ -128,11 +168,22 @@ void MainClient(char *ip_addres, char *port_num_char)
 
     // Call the connect function, passing the created socket and the sockaddr_in structure as parameters. 
 	// Check for general errors.
-	if ( connect( m_socket, (SOCKADDR*) &clientService, sizeof(clientService) ) == SOCKET_ERROR) {
-        printf( "Failed to connect.\n" );
-        WSACleanup();
-        return;
-    }
+	do {
+		if (connect(m_socket, (SOCKADDR*)&clientService, sizeof(clientService)) == SOCKET_ERROR) {
+			printf("Failed to connecting to server on %s:%s.\n", ip_addres, port_num_char);
+			tryToReconnect(&try_to_reconnect_answer);
+			if (try_to_reconnect_answer == EXIT_PROGRAM || try_to_reconnect_answer == ERR) {
+				WSACleanup();
+				return;
+			}
+		}
+		else
+			try_to_reconnect_answer = CONNECTED;
+	} while (try_to_reconnect_answer == RECONNECT);
+	
+			
+        
+    
 
     // Send and receive data.
 	/*

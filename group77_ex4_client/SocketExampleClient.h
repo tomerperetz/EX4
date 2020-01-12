@@ -7,13 +7,15 @@
 */
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
+
+#include "../Shared/hardCodedData.h"
 #ifndef SOCKET_EXAMPLE_CLIENT_H
 #define SOCKET_EXAMPLE_CLIENT_H
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 void MainClient();
-
+void tryToReconnect(int *answer);
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 #endif // SOCKET_EXAMPLE_CLIENT_H
