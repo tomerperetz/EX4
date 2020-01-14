@@ -1,32 +1,14 @@
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-/* 
- This file was written for instruction purposes for the 
- course "Introduction to Systems Programming" at Tel-Aviv
- University, School of Electrical Engineering.
-Last updated by Amnon Drory, Winter 2011.
- */
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-#include <stdio.h>
-#include <string.h>
-#include <winsock2.h>
+#include "../Shared/hardCodedData.h"
 
-#include "SocketExampleClient.h"
-#include "../Shared/SocketExampleShared.h"
-#include "../Shared/SocketSendRecvTools.h"
-
-
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 SOCKET m_socket;
-
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 //Reading data coming from the server
 static DWORD RecvDataThread(void)
 {
+	extern Messege g_msg_in;
 	int ret_val = TRUE;
 	while (1)
 	{
@@ -36,12 +18,20 @@ static DWORD RecvDataThread(void)
 		if (ret_val == ERR) {
 			/*TO DO*/
 		}
-		printMessege(&msg_struct);
-		// This is where we will use the server state machine
-		// for demo only print do something and send insulting text to client
-		printf("#########################################\n\n");
-		printf("This is the state machine \n\n");
-		printf("#########################################\n\n");
+		
+
+		/*=====================
+			MUTEX START
+		=====================*/
+
+		ret_val = copyMsg(&msg_struct, &g_msg_in);
+		if (ret_val != TRUE)
+			return ERR;
+
+		/*=====================
+			MUTEX END
+		=====================*/
+
 		freeMessege(&msg_struct);
 	}
 	return 0;
@@ -52,27 +42,30 @@ static DWORD RecvDataThread(void)
 //Sending data to the server
 static DWORD SendDataThread(void)
 {
-	char SendStr[256];
-	//TransferResult_t SendRes;
-
+	extern Messege g_msg_in;
+	
+	int ret_val;
 	while (1) 
 	{
-		gets_s(SendStr, sizeof(SendStr)); //Reading a string from the keyboard
+		Messege msg_out;
+/*		
+		=====================
+			STATE MACHINE
+		=====================
+*/
 
-		if ( STRINGS_ARE_EQUAL(SendStr,"quit") ) 
-			return 0x555; //"quit" signals an exit from the client side
-		
-		// Old send implementation from class
+		ret_val = clientStateMachine(msg_out);
+		if (ret_val != TRUE)
+			return ERR;
+/*
+		=====================
+		   ENCODE AND SEND
+		=====================
+*/
+		sendMessegeWrapper(m_socket, msg_out.type, msg_out.params[0], msg_out.params[1], \
+			msg_out.params[2], msg_out.params[3], msg_out.params[4]);
 
-		//SendRes = SendString( SendStr, m_socket);
-		//	
-		//if ( SendRes == TRNS_FAILED ) 
-		//{
-		//	printf("Socket error while trying to write data to socket\n");
-		//	return 0x555;
-		//}
-
-		sendMessegeWrapper(m_socket, "SendDataThread_type", "param1", "param2", "param3", "param4", "param5");
+		freeMessege(&msg_out);
 	}
 }
 

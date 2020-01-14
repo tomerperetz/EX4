@@ -13,6 +13,21 @@ void printMessege(Messege *msg)
 	}
 }
 
+int copyMsg(Messege *msg_src, Messege *msg_dst)
+{	
+	int ret_val = ERR;
+
+	ret_val = initMessege(msg_dst, SERVER_MAIN_MANU, msg_src->params[0], msg_src->params[1], msg_src->params[2], \
+		msg_src->params[3], msg_src->params[4]);
+	if (ret_val != TRUE)\
+	{
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		return ERR;
+	}
+		
+	return TRUE;
+}
+
 void freeMessege(Messege *msg) 
 {
 	if (msg->type != NULL) {
@@ -446,54 +461,3 @@ int decodeWrapper(Messege *msg, SOCKET *socket) {
 	free(AcceptedStr);
 	return TRUE;
 }
-
-//int decodeMsg2(char *char_arr, Messege *decoded_msg)
-//{
-//	int idx = 0;
-//	int len = 0;
-//	int end = 0;
-//	int flag = 1;
-//	int param_idx = 0;
-//	char last_char = ':';
-//
-//	initMessege(decoded_msg, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-//	
-//	decoded_msg->num_of_params = 0;
-//	
-//	while (char_arr[idx] != '\n')
-//	{
-//		// Calc paramter length
-//		len = getLen(char_arr, idx, last_char);
-//		end = idx + len;
-//		// allocate memory
-//
-//		// first iteration, this is the messege type
-//		if (flag)
-//		{
-//			decoded_msg->type = (char*)malloc((len + 1) * sizeof(char));
-//			getSegement(decoded_msg->type, char_arr, &idx, last_char);
-//			last_char = ';';
-//			flag = 0;
-//		}
-//		
-//		// not first iteration, this is a paramter
-//		else
-//		{
-//			decoded_msg->params[param_idx] = (char*)malloc((len + 1) * sizeof(char));
-//			
-//			// update corresponding struct field
-//			getSegement(decoded_msg->params[param_idx], char_arr, &idx, last_char);
-//			decoded_msg->params_len_lst[param_idx] = (int)strlen(decoded_msg->params[param_idx]);
-//
-//			// update for next iteration
-//			param_idx++;
-//			decoded_msg->num_of_params++;
-//		}	
-//		
-//		
-//	}
-//
-//	
-//
-//	return TRUE;
-//}
