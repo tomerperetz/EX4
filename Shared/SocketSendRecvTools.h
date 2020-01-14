@@ -34,6 +34,8 @@ typedef struct _Messege
 // Declerations ----------------------------------------------------------------->
 void printMessege(Messege *msg);
 
+int copyMsg(Messege *msg_src, Messege *msg_dst);
+
 void freeMessege(Messege *msg);
 
 int initMsgParam(char *param, Messege *msg, int param_idx);

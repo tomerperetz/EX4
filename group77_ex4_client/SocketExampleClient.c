@@ -1,32 +1,14 @@
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-/* 
- This file was written for instruction purposes for the 
- course "Introduction to Systems Programming" at Tel-Aviv
- University, School of Electrical Engineering.
-Last updated by Amnon Drory, Winter 2011.
- */
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-#include <stdio.h>
-#include <string.h>
-#include <winsock2.h>
+#include "../Shared/hardCodedData.h"
 
-#include "SocketExampleClient.h"
-#include "../Shared/SocketExampleShared.h"
-#include "../Shared/SocketSendRecvTools.h"
-
-
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 SOCKET m_socket;
-
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 //Reading data coming from the server
 static DWORD RecvDataThread(void)
 {
+	extern Messege g_msg_in;
 	int ret_val = TRUE;
 	while (1)
 	{
@@ -36,12 +18,20 @@ static DWORD RecvDataThread(void)
 		if (ret_val == ERR) {
 			/*TO DO*/
 		}
-		printMessege(&msg_struct);
-		// This is where we will use the server state machine
-		// for demo only print do something and send insulting text to client
-		printf("#########################################\n\n");
-		printf("This is the state machine \n\n");
-		printf("#########################################\n\n");
+		
+
+		/*=====================
+			MUTEX START
+		=====================*/
+
+		ret_val = copyMsg(&msg_struct, &g_msg_in);
+		if (ret_val != TRUE)
+			return ERR;
+
+		/*=====================
+			MUTEX END
+		=====================*/
+
 		freeMessege(&msg_struct);
 	}
 	return 0;
@@ -52,27 +42,30 @@ static DWORD RecvDataThread(void)
 //Sending data to the server
 static DWORD SendDataThread(void)
 {
-	char SendStr[256];
-	//TransferResult_t SendRes;
-
+	extern Messege g_msg_in;
+	
+	int ret_val;
 	while (1) 
 	{
-		gets_s(SendStr, sizeof(SendStr)); //Reading a string from the keyboard
+		Messege msg_out;
+/*		
+		=====================
+			STATE MACHINE
+		=====================
+*/
 
-		if ( STRINGS_ARE_EQUAL(SendStr,"quit") ) 
-			return 0x555; //"quit" signals an exit from the client side
-		
-		// Old send implementation from class
+		ret_val = clientStateMachine(&msg_out);
+		if (ret_val != TRUE)
+			return ERR;
+/*
+		=====================
+		   ENCODE AND SEND
+		=====================
+*/
+		sendMessegeWrapper(m_socket, msg_out.type, msg_out.params[0], msg_out.params[1], \
+			msg_out.params[2], msg_out.params[3], msg_out.params[4]);
 
-		//SendRes = SendString( SendStr, m_socket);
-		//	
-		//if ( SendRes == TRNS_FAILED ) 
-		//{
-		//	printf("Socket error while trying to write data to socket\n");
-		//	return 0x555;
-		//}
-
-		sendMessegeWrapper(m_socket, "SendDataThread_type", "param1", "param2", "param3", "param4", "param5");
+		freeMessege(&msg_out);
 	}
 }
 
@@ -85,12 +78,19 @@ char *getUserAnswer(FILE* fp)
 	size_t len = 0;
 	size_t size = 10;
 	str = realloc(NULL, sizeof(char)*size);//size is start size
-	if (str == NULL) return str;
+	if (str == NULL) {
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+		return str;
+	}
+		
 	while (EOF != (ch = fgetc(fp)) && ch != '\n') {
 		str[len++] = ch;
 		if (len == size) {
 			str = realloc(str, sizeof(char)*(size += 16));
-			if (str == NULL) return str;
+			if (str == NULL) {
+				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+				return str;
+			}
 		}
 	}
 	str[len++] = '\0';
@@ -108,7 +108,6 @@ void tryToReconnect(int *answer)
 		printf("2. Exit\n");
 		user_answer = getUserAnswer(stdin);
 		if (user_answer == NULL) {
-			raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
 			*answer = ERR;
 		}
 		if (strcmp(user_answer, "1") == EQUAL || strcmp(user_answer, "2") == EQUAL) {
@@ -118,6 +117,7 @@ void tryToReconnect(int *answer)
 		free(user_answer);
 	} while (!done);
 }
+
 void MainClient(char *ip_addres, char *port_num_char)
 {
 	SOCKADDR_IN clientService;

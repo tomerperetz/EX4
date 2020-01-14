@@ -18,6 +18,7 @@ Hard coded data: includes and defines
 // Includes --------------------------------------------------->
 #include <stdio.h>	
 #include <string.h>
+#include <stdlib.h>
 #include <windows.h>
 #include <sys/stat.h>
 #include <winsock2.h>
@@ -28,6 +29,10 @@ Hard coded data: includes and defines
 #include "lib_osHandler.h"
 #include "SocketSendRecvTools.h"
 #include "../group77_ex4_server/SocketExampleServer.h"
+#include "../group77_ex4_client/SocketExampleClient.h"
+#include "SocketExampleShared.h"
+#include "SocketSendRecvTools.h"
+#include "../group77_ex4_client/client_services.h"
 
 
 // Consts ----------------------------------------------------->
@@ -42,6 +47,8 @@ static const char END_OF_MSG = '\n';
 #define SERVER_EXPECTED_ARGC 1
 #define CLIENT_EXPECTED_ARGC 3
 
+
 #define CONNECTED 0
 #define RECONNECT 1
 #define EXIT_PROGRAM 2
+

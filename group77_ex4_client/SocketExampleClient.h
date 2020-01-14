@@ -13,8 +13,11 @@
 #define SOCKET_EXAMPLE_CLIENT_H
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-
-void MainClient();
+static DWORD RecvDataThread(void);
+static DWORD SendDataThread(void);
+void MainClient(char *ip_addres, char *port_num_char);
+void tryToReconnect(int *answer);
+char *getUserAnswer(FILE* fp);
 void tryToReconnect(int *answer);
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
