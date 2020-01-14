@@ -9,16 +9,21 @@
 
 
 #include "../Shared/hardCodedData.h"
+#include "../Shared/SocketExampleShared.h"
 #ifndef SOCKET_EXAMPLE_CLIENT_H
 #define SOCKET_EXAMPLE_CLIENT_H
-
+ 
+#define RECONNECT_MENU "Choose what to do next:\n1. Try to reconnect\n2. Exit\n"
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 static DWORD RecvDataThread(void);
 static DWORD SendDataThread(void);
 void MainClient(char *ip_addres, char *port_num_char);
-void tryToReconnect(int *answer);
-char *getUserAnswer(FILE* fp);
-void tryToReconnect(int *answer);
+void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option);
+char *getString(FILE* fp);
+
+int tryToReconnect(Socket_info *socket_data, int * try_to_reconnect_answer);
+
+
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 #endif // SOCKET_EXAMPLE_CLIENT_H

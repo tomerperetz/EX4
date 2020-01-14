@@ -241,7 +241,7 @@ static DWORD ServiceThread( SOCKET *t_socket )
 	BOOL Done = FALSE;
 	strcpy( SendStr, "Welcome to this server!" );
 	
-	ret_val = sendMessegeWrapper(*t_socket, "welcome_msg",NULL, NULL, NULL, NULL, NULL);
+	ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MANU, NULL, NULL, NULL, NULL, NULL);
 	if (ret_val == ERR) {
 		/*TO DO*/
 	}
@@ -252,6 +252,8 @@ static DWORD ServiceThread( SOCKET *t_socket )
 		ret_val = decodeWrapper(&msg_struct, t_socket);
 		if (ret_val == ERR) {
 			/*TO DO*/
+			printf("11111\n");
+			goto MAIN_CLEAN;
 		}
 		printMessege(&msg_struct);	
 
@@ -263,12 +265,15 @@ static DWORD ServiceThread( SOCKET *t_socket )
 		printf("This is the state machine \n\n");
 		printf("#########################################\n\n");
 
-		sendMessegeWrapper(*t_socket, "ServiceThread_type", "param1", "param2", "param3",
+		sendMessegeWrapper(*t_socket, SERVER_MAIN_MANU, "param1", "param2", "param3",
 			"param4", "param5");
 		freeMessege(&msg_struct);
 	}
 	
 	printf("Conversation ended.\n");
+MAIN_CLEAN:
+	printf("22222222\n");
 	closesocket( *t_socket );
+	printf("3333\n");
 	return 0;
 }

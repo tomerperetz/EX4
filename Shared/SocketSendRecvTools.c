@@ -1,5 +1,5 @@
 #include "SocketSendRecvTools.h"
-
+#include "./../group77_ex4_client/SocketExampleClient.h"
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 void printMessege(Messege *msg)
@@ -268,6 +268,7 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 	int BytesJustTransferred;
 	int RemainingBytesToReceive = BytesToReceive;
 	
+	
 	while ( RemainingBytesToReceive > 0 )  
 	{
 		/* send does not guarantee that the entire message is sent */
@@ -277,8 +278,11 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 			printf("recv() failed, error %d\n", WSAGetLastError() );
 			return TRNS_FAILED;
 		}		
-		else if ( BytesJustTransferred == 0 )
+		else if (BytesJustTransferred == 0) {
+			printf("Connection to server on <ip>:<port> has been lost\nTODO: insert ip and port!!!!!!!!!!!!!\n");
 			return TRNS_DISCONNECTED; // recv() returns zero if connection was gracefully disconnected.
+		}
+			
 
 		RemainingBytesToReceive -= BytesJustTransferred;
 		CurPlacePtr += BytesJustTransferred; // <ISP> pointer arithmetic
@@ -347,24 +351,6 @@ int getLen(char *buffer, int idx, char last_char)
 	}
 	return len;
 }
-
-//void getSegement2(char *dst_buffer, char *src_buffer, int *src_idx, char last_char)
-//{
-//	int dst_idx = 0;
-//	int src_idx_local = *src_idx;
-//	for (src_idx_local; src_buffer[src_idx_local] != last_char && src_buffer[src_idx_local] != '\n'; src_idx_local++)
-//	{
-//		dst_buffer[dst_idx] = src_buffer[src_idx_local];
-//		dst_idx++;
-//	}
-//	
-//	if (src_buffer[src_idx_local] != '\n')
-//		src_idx_local++;
-//	
-//	dst_buffer[dst_idx] = '\0';
-//	*src_idx = src_idx_local;
-//	return;
-//}
 
 void getSegement(char *dst_buffer, char *src_buffer, int start_idx, char last_idx)
 {
