@@ -3,9 +3,10 @@
 #include "../Shared/hardCodedData.h"
 
 // Hardcoded messages
-#define SERVER_INVITE "SERVER_INVITE"
+
 
 #define SERVER_NO_OPPONENTS "SERVER_NO_OPPONENTS"
+#define SERVER_NO_OPPONENTS_MSG "Couldn't find an opponent. try again later."
 
 #define SERVER_LEADERBOARD "SERVER_LEADERBOARD"
 
@@ -20,6 +21,9 @@
 										"Choose what to do next:\n"\
 										"1.	Try to reconnect\n"\
 										"2. Exit\n"
+
+#define SERVER_INVITE "SERVER_INVITE"
+#define SERVER_INVITE_MSG "Your opponent is: %s"
 
 #define SERVER_APPROVED "SERVER_APPROVED"
 #define SERVER_APPROVED_MSG "Connection to server on %s:%s APPROVED\n"
@@ -64,4 +68,10 @@
 
 // Declerations -------------------------------------------------------------------->
 
-int clientStateMachine();
+int clientStateMachine(Messege *msg_out, Messege *g_msg_in);
+
+void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option);
+
+char *getString(FILE* fp);
+
+int encodeMessegeLocal(Messege *msg);

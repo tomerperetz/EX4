@@ -31,5 +31,6 @@ int main(int argc, char *argv[])
 		raiseError(1, __FILE__, __func__, __LINE__, ERROR_ID_1_ARGS);
 		return TRUE;
 	}
-	MainClient(argv[1], argv[2]);
+	runClientTest();
+	//MainClient(argv[1], argv[2]);
 }
