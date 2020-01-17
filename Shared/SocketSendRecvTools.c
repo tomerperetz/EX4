@@ -1,6 +1,8 @@
 #include "SocketSendRecvTools.h"
 #include "./../group77_ex4_client/SocketExampleClient.h"
 
+msg_fifo *msg_q;
+
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 void printMessege(Messege *msg)
 {
@@ -360,7 +362,6 @@ void getSegement(char *dst_buffer, char *src_buffer, int start_idx, char last_id
 		dst_buffer[dst_idx] = src_buffer[i];
 		dst_idx++;
 	}
-
 	dst_buffer[dst_idx] = '\0';
 	return;
 }
@@ -418,8 +419,6 @@ int decodeMsg(char *char_arr, Messege *decoded_msg)
 			break;
 	}
 
-
-
 	return TRUE;
 }
 
@@ -446,4 +445,116 @@ int decodeWrapper(Messege *msg, SOCKET *socket) {
 	}
 	free(AcceptedStr);
 	return TRUE;
+}
+
+
+/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+/* Messege list tools */
+
+void msg_q_init()
+{
+	extern msg_fifo *msg_q;
+	msg_q = (msg_fifo*)malloc(sizeof(msg_fifo));
+	msg_q->head = NULL;
+	msg_q->tail = NULL;
+	
+}
+
+Messege* msg_q_pop()
+{
+	extern msg_fifo *msg_q;
+	msg_q_item *temp;
+	Messege *data = NULL;
+	if (msg_q->head == NULL)
+		// No msg in head of line
+		return NULL;
+
+	msg_q_printQ();
+	data = msg_q->head->data;
+	temp = msg_q->head;
+	msg_q->head = msg_q->head->prev;
+	free(temp);
+	
+	return data;
+}
+
+int msg_q_insert(Messege *new_msg)
+{
+	extern msg_fifo *msg_q;
+	msg_q_item *new_node;
+	Messege local_msg;
+	int ret_val = ERR;
+
+	ret_val = copyMsg(new_msg, &local_msg);
+	
+	if (ret_val == ERR)
+		return ERR;
+
+	new_node = (msg_q_item*)malloc(sizeof(msg_q_item));
+
+	if (new_node == NULL)
+	{
+		raiseError(4, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+		return ERR;
+	}
+
+	// no items in line
+	if (msg_q->head == NULL)
+	{
+		
+		msg_q->head = new_node;
+		msg_q->tail = new_node;
+		new_node->data = new_msg;
+		new_node->next = NULL;
+		new_node->prev = NULL;
+
+	}
+	// items in line, add elemnt last in line
+	else
+	{
+		msg_q->tail->prev = new_node;
+		new_node->next = msg_q->tail;
+		msg_q->tail = new_node;
+		new_node->data = new_msg;
+		new_node->prev = NULL;
+	}
+
+
+	return TRUE;
+
+}
+
+void msg_q_printQ()
+{
+	extern msg_fifo *msg_q;
+	msg_q_item *curr = (msg_q_item*)malloc(sizeof(msg_q_item));
+	curr = msg_q->head;
+	printf("======================\n");
+	printf("Messege Q:\n");
+	if (curr == NULL)
+	{
+		printf("no items in list\n");
+		return;
+	}
+	do
+	{
+		printMessege(curr->data);
+		curr = curr->prev;
+	} while (curr != NULL);
+
+	printf("Messege Q done printing\n");
+	printf("======================\n");
+}
+
+void msg_q_freeQ()
+{
+	extern msg_fifo *msg_q;
+	msg_q_item *curr = msg_q->head;
+
+	while (curr->prev != NULL)
+	{
+		freeMessege(curr->data);
+		curr = curr->prev;
+		free(curr->next);
+	}
 }

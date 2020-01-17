@@ -1,19 +1,162 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #include "../Shared/hardCodedData.h"
-
+#include "./client_services.h"
 Socket_info m_socket_data;
+static HANDLE msg_q_semaphore;
+static HANDLE msg_q_mutex;
+
+int clientStateMachine(Messege *msg_in, Messege *msg_out)
+{
+	int ret_val = TRUE;
+	int user_answer = ERR;
+
+	if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_MAIN_MANU))
+	{
+	MAIN_MANU:
+		printMenuAndGetAnswer(SERVER_MAIN_MANU_MSG, &user_answer, 4);
+		switch (user_answer)
+		{
+		case 1:
+			initMessege(msg_out, "CLIENT_VERSUS", NULL, NULL, NULL, NULL, NULL);
+			break;
+		case 2:
+			initMessege(msg_out, "CLIENT_CPU", NULL, NULL, NULL, NULL, NULL);
+			break;
+		case 3:
+			initMessege(msg_out, "CLIENT_LEADERBOARD", NULL, NULL, NULL, NULL, NULL);
+			break;
+		case 4:
+			initMessege(msg_out, "CLIENT_DISCONNECT", NULL, NULL, NULL, NULL, NULL);
+			break;
+		}
+
+		return TRUE;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_APPROVED))
+	{
+		printf(SERVER_APPROVED_MSG, msg_in->params[0], msg_in->params[1]);
+		return NO_NEED_TO_REPLY;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_DENIED))
+	{
+		printf(SERVER_DENIED_MSG_ARGS, msg_in->params[0], msg_in->params[1], msg_in->params[2]);
+		printMenuAndGetAnswer(SERVER_DENIED_MSG_MANU, &user_answer, 2);
+		switch (user_answer)
+		{
+		case 1:
+			printf("try to reconnect\n");
+			return NO_NEED_TO_REPLY;
+		case 2:
+			printf("Exiting program..\n");
+			return NO_NEED_TO_REPLY;
+		}
+
+		return TRUE;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_INVITE))
+	{
+		printf(SERVER_INVITE_MSG, msg_in->params[0]);
+		return NO_NEED_TO_REPLY;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_PLAYER_MOVE_REQUEST))
+	{
+		printMenuAndGetAnswer(SERVER_PLAYER_MOVE_REQUEST_MSG, &user_answer, PLAYER_MOVE);
+
+		switch (user_answer)
+		{
+		case ROCK:
+			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "ROCK", NULL, NULL, NULL, NULL);
+			break;
+		case PAPER:
+			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "PAPER", NULL, NULL, NULL, NULL);
+			break;
+		case SCISSORS:
+			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "SCISSORS", NULL, NULL, NULL, NULL);
+			break;
+		case LIZARD:
+			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "LIZARD", NULL, NULL, NULL, NULL);
+			break;
+		case SPOCK:
+			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "SPOCK", NULL, NULL, NULL, NULL);
+			break;
+		}
+
+		return TRUE;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_GAME_RESULTS))
+	{
+		if (msg_in->params[3] != NULL)
+			printf(SERVER_GAME_RESULTS_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2], msg_in->params[3]);
+		else
+			printf(SERVER_GAME_RESULTS_DRAW_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2]);
+		return NO_NEED_TO_REPLY;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_GAME_OVER_MANU))
+	{
+		printMenuAndGetAnswer(SERVER_GAME_OVER_MANU_MSG, &user_answer, 2);
+
+		switch (user_answer)
+		{
+		case 1:
+			initMessege(msg_out, msg_in->params[0], NULL, NULL, NULL, NULL, NULL);
+			break;
+		case 2:
+			goto MAIN_MANU;
+			break;
+		}
+
+		return TRUE;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_OPPONENT_QUIT))
+	{
+		printf(SERVER_OPPONENT_QUIT_MSG, msg_in->params[0]);
+		goto MAIN_MANU;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_NO_OPPONENTS))
+	{
+		printf(SERVER_NO_OPPONENTS_MSG);
+		goto MAIN_MANU;
+	}
+
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_LEADERBOARD))
+	{
+		printf("Print leader board somehow\n");
+		goto MAIN_MANU;
+	}
+
+	else
+	{
+		printf("seems we don't handle this message type: %s", msg_in->type);
+		return ERR;
+	}
+
+	return TRUE;
+}
 
 //Reading data coming from the server
 static DWORD RecvDataThread(void)
 {
-	extern Messege g_msg_in;
+	extern msg_fifo *msg_q;
 	int ret_val = TRUE;
+	int wait_code = TRUE;
+	int release_res = TRUE;
+	int release_code = TRUE;
+	LONG previous_count;
 	while (1)
 	{
 
 		Messege msg_struct;
 		ret_val = decodeWrapper(&msg_struct, &m_socket_data.socket);
+		
 		if (ret_val == ERR) {
 			/*TO DO*/
 			printf("ERRRRORRRR\n");
@@ -24,16 +167,35 @@ static DWORD RecvDataThread(void)
 			MUTEX START
 		=====================*/
 
-		ret_val = copyMsg(&msg_struct, &g_msg_in);
+		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
+
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE)
+			return ERR;
+
+		printf("\n==================\nRECV THREAD START\n==================\n\n");
+
+		ret_val = msg_q_insert(&msg_struct);
 		
+
+		msg_q_printQ();
+		
+
 		if (ret_val != TRUE)
 			return ERR;
+		printf("\n==================\nRECV THREAD END\n==================\n\n");
+		
+		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
+		if (release_res == FALSE) goto Error_And_Close;
 
 		/*=====================
 			MUTEX END
 		=====================*/
-		printMessege(&msg_struct);
-		freeMessege(&msg_struct);
+
+	Error_And_Close:
+		if (ret_val == ERR) 
+			return ERR;
+		
+		//freeMessege(&msg_struct);
 	}
 	return 0;
 }
@@ -42,39 +204,84 @@ static DWORD RecvDataThread(void)
 
 //Sending data to the server
 static DWORD SendDataThread(void)
-{
-	extern Messege g_msg_in;
-	
+{	
 	int ret_val = TRUE;
-	while (1) 
+	
+	int wait_code = TRUE;
+	int release_res = TRUE;
+	LONG previous_count;
+	while (TRUE) 
 	{
 		Messege msg_out;
+		Messege *curr_msg = NULL;
 /*		
 		=====================
 			STATE MACHINE
 		=====================
 */
 		
-		ret_val = clientStateMachine(&msg_out, &g_msg_in);
-		printMessege(&msg_out);
 
-		if (ret_val != TRUE)
+		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
+
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE)
 			return ERR;
+
+		printf("\n==================\nSEND THREAD START\n==================\n\n");
+
+		msg_q_printQ();
+
+		curr_msg = msg_q_pop();
+
+
+		
+
+		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
+		if (release_res == FALSE)
+			return ERR;
+
+		if (curr_msg != NULL)
+		{
+			
+			ret_val = clientStateMachine(curr_msg, &msg_out);
+			if (ret_val == ERR)
+				return ERR;
+
+			else if (ret_val == TRUE)
+			{
+				printf("\n==============================\n\n");
+				printf("Your messege decoded:\n");
+				printMessege(&msg_out);
+
+				printf("Your messege encoded:\n");
+				printf("\n==============================\n\n");
+				freeMessege(&msg_out);
+				
+			}
+		}
+		
+		free(curr_msg);
+		printf("\n==================\nSEND THREAD END\n==================\n\n");
+
 /*
 		=====================
 		   ENCODE AND SEND
 		=====================
 */
 		
-		sendMessegeWrapper(m_socket_data.socket, "ALL_GOOD", "111", NULL, NULL, NULL, NULL);
+		//sendMessegeWrapper(m_socket_data.socket, "ALL_GOOD", "111", NULL, NULL, NULL, NULL);
 		//sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], msg_out.params[1], \
 		//	msg_out.params[2], msg_out.params[3], msg_out.params[4]);
 
-		//freeMessege(&msg_out);
 	}
 }
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+void lowerCase(char *str)
+{
+	for (int i = 0; str[i] != '\0'; i++)
+		str[i] = tolower(str[i]);
+}
+
 char *getString(FILE* fp)
 {
 	//The size is extended by the input with the value of the provisional
@@ -124,6 +331,36 @@ void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 			done = TRUE;
 			*answer = atoi(user_answer);
 		}
+		else if (max_menu_option == PLAYER_MOVE)
+		{
+			lowerCase(user_answer);
+			if STRINGS_ARE_EQUAL(user_answer, "rock")
+			{
+				done = TRUE;
+				*answer = ROCK;
+			}
+			else if (STRINGS_ARE_EQUAL(user_answer, "paper"))
+			{
+				done = TRUE;
+				*answer = PAPER;
+			}
+			else if (STRINGS_ARE_EQUAL(user_answer, "scissors"))
+			{
+				done = TRUE;
+				*answer = SCISSORS;
+			}
+			else if (STRINGS_ARE_EQUAL(user_answer, "lizard"))
+			{
+				done = TRUE;
+				*answer = LIZARD;
+			}
+			else if (STRINGS_ARE_EQUAL(user_answer, "spock"))
+			{
+				done = TRUE;
+				*answer = SPOCK;
+			}
+				
+		}
 		free(user_answer);
 	} while (!done);
 }
@@ -162,6 +399,14 @@ void MainClient(char *ip_addres, char *port_num_char)
     WSADATA wsaData; //Create a WSADATA object called wsaData.
 	//The WSADATA structure contains information about the Windows Sockets implementation.
 	
+	// init messege queue for reciving msgs
+	extern msg_fifo *msg_q;
+	msg_q_init();
+
+	// Create program semaphores
+	createProgramSemaphores();
+	createProgramMutexes();
+
 	//Call WSAStartup and check for errors.
     int iResult = WSAStartup( MAKEWORD(2, 2), &wsaData );
     if ( iResult != NO_ERROR )
@@ -220,5 +465,93 @@ MAIN_CLEAN:
 	WSACleanup();
     
 	return;
+}
+
+
+
+//==========================================================================
+//					Semaphores
+//==========================================================================
+int createProgramSemaphores()
+{
+
+	/*
+		Description: init global semaphores
+		parameters:
+				 - none
+		Returns: TRUE if succeded, ERR o.w
+	*/
+
+	int ret_val = TRUE;
+	int wait_code = ERR;
+	int release_res = ERR;
+
+	msg_q_semaphore = NULL;
+	msg_q_semaphore = CreateSemaphore(NULL, 1, 1, NULL);
+	if (msg_q_semaphore == NULL) {
+		printf("Semaphore creation failed\n");
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		ret_val = ERR;
+	}
+	return ret_val;
+}
+
+int createProgramMutexes()
+{
+	/*
+	Description: init global mutexes
+	parameters:
+			 - none
+	Returns: TRUE if succeded, ERR o.w
+	*/
+
+	int retVal = TRUE;
+
+	msg_q_mutex = NULL;
+	msg_q_mutex = CreateMutex(NULL, FALSE, NULL);
+	if (msg_q_mutex == NULL) {
+		retVal = ERR;  goto Main_cleanup;
+	}
+Main_cleanup:
+	if (retVal == ERR) {
+		raiseError(6, __FILE__, __func__, __LINE__, "Mutex creation failed\n");
+	}
+	return retVal;
+}
+
+int checkWaitCodeStatus(DWORD wait_code, BOOL singleNotMultiple) {
+	/*
+	Description: check wait code status from waitForMultipleObject o rwaitForSingleObject function
+	parameters:
+			 - DWORD wait_code - wait code recieved
+			 - BOOL singleNotMultiple - TRUE for multiple, FALSE for single
+
+	Returns: TRUE if succeded, ERR o.w
+	*/
+
+	int retVal1 = ERR;
+	DWORD errorMessageID;
+	switch (wait_code)
+	{
+	case WAIT_TIMEOUT:
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("details: Timeout error when waiting\n");
+		break;
+	case WAIT_FAILED:
+		errorMessageID = GetLastError();
+		printf("%d\n", errorMessageID);
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("details: Timeout error when waiting\n");
+		break;
+	case WAIT_OBJECT_0:
+		retVal1 = TRUE;
+		break;
+	case WAIT_ABANDONED_0:
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("details: WAIT ANDONED\n");
+		break;
+	}
+	
+	return retVal1;
 }
 

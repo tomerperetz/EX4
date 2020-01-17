@@ -1,122 +1,95 @@
 #include "client_services.h"
 #include "./SocketExampleClient.h"
+#include <ctype.h>
 
-Messege g_msg_in;
+// global variables ------------------------------------------------------>
 
-void printMsg(Messege *msg)
+
+// Functions ------------------------------------------------------------->
+
+//==========================================================================
+//					State Machine Functions
+//==========================================================================
+
+
+int encodeMessegeLocal(Messege *msg)
 {
+	char *encoded_messege;
+	BOOL type_flag = TRUE;
+	int encoded_messege_len = 0, params_idx = 0, ret_val = TRUE;
+	TransferResult_t send_ret_val = TRNS_SUCCEEDED;
 
-	if (strcmp(msg->type, SERVER_MAIN_MANU) == 0)
-	{
-		//printf(SERVER_MAIN_MANU_MSG);
+	getEncodeMessegeLength(msg, &encoded_messege_len);
+	encoded_messege = (char*)malloc(sizeof(char) * (encoded_messege_len + 1));
+	if (encoded_messege == NULL) {
+		ret_val = ERR;
+		goto MAIN_CLEAN_UP1;
 	}
-	else if (strcmp(msg->type, SERVER_APPROVED) == 0)
-	{
-		//printf(SERVER_APPROVED_MSG);
+	strcpy_s(encoded_messege, (encoded_messege_len + 1), msg->type);
+	while (msg->num_of_params > 0 && msg->params[params_idx] != NULL) {
+		if (type_flag) {
+			strcat_s(encoded_messege, (encoded_messege_len + 1), ":");
+			type_flag = FALSE;
+		}
+		else {
+			strcat_s(encoded_messege, (encoded_messege_len + 1), ";");
+		}
+		strcat_s(encoded_messege, (encoded_messege_len + 1), msg->params[params_idx]);
+		params_idx++;
+		msg->num_of_params--;
 	}
-	else if (strcmp(msg->type, SERVER_DENIED) == 0)
-	{
-		//printf(SERVER_DENIED_MSG);
-	}
-	else if (strcmp(msg->type, SERVER_INVITE) == 0)
-	{
-		// DO SOMETHING
-	}
-	else if (strcmp(msg->type, SERVER_PLAYER_MOVE_REQUEST) == 0)
-	{
-		//printf(SERVER_PLAYER_MOVE_REQUEST_MSG);
-	}
-	else if (strcmp(msg->type, SERVER_GAME_RESULTS) == 0)
-	{
-		//printf(SERVER_GAME_RESULTS_MSG);
-	}
-	else if (strcmp(msg->type, SERVER_GAME_OVER_MANU) == 0)
-	{
-		//printf(SERVER_GAME_OVER_MANU_MSG);
-	}
-	else if (strcmp(msg->type, SERVER_OPPONENT_QUIT) == 0)
-	{
-		//printf(SERVER_OPPONENT_QUIT_MSG);
-	}
-	else if (strcmp(msg->type, SERVER_NO_OPPONENTS) == 0)
-	{
-		//printf("SERVER_NO_OPPONENTS_MSG");
-	}
-	else if (strcmp(msg->type, SERVER_LEADERBOARD) == 0)
-	{
-		//printf("Print leader board\n");
-	}
-	else if (strcmp(msg->type, SERVER_LEADERBOARD_MANU) == 0)
-	{
-		//printf(SERVER_LEADERBOARD_MANU_MSG);
-	}
-	else {
-		//printf("seems we don't handle this message type: %s", msg->type);
-	}
-		
+	encoded_messege[(int)strlen(encoded_messege)] = '\n';
 
+	for (int i = 0; encoded_messege[i] != '\n'; i++)
+		printf("%c",encoded_messege[i]);
+	printf("\n");
+
+MAIN_CLEAN_UP1:
+	if (ret_val == ERR) {
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+	}
+//MAIN_CLEAN_UP2:
+	free(encoded_messege);
+	return ret_val;
 }
 
-
-int clientStateMachine(Messege *msg_out, Messege *g_msg_in)
+int runClientTest()
 {
-	char *SendStr;
-	int ret_val = TRUE;
-	printf("++++++++++++++++++++\n");
-	printMessege(g_msg_in);
-	printf("%s   %s\n", g_msg_in->type, SERVER_MAIN_MANU);
-	if (strcmp(g_msg_in->type, SERVER_MAIN_MANU) == 0)
+	
+	int send_messege;
+	int ret_val = ERR;
+	char *user_answer;
+	//extern msg_fifo *msg_q;
+	char text[50] = "Please type in a messege sent from server\n";
+	printf("Welcome to client test program. type in decoded messege and test client reaction\n");
+	
+	while (FALSE)
 	{
-		printf(SERVER_MAIN_MANU_MSG);
-		SendStr = getString(stdin);
-		if (SendStr == NULL) {
-			return ERR;
+		Messege msg_in;
+		Messege msg_out;
+
+		printf("\ntype in server command: <type>\n");
+		user_answer = getString(stdin);
+		initMessege(&msg_in, user_answer, "param1", "param2", "param3", "param4", "param5");
+
+//		send_messege = clientStateMachine(&msg_in, &msg_out);
+		if (send_messege ==TRUE)
+		{
+			printf("\n==============================\n\n");
+			printf("Your messege decoded:\n");
+			printMessege(&msg_out);
+
+			printf("Your messege encoded:\n");
+			encodeMessegeLocal(&msg_out);
+			printf("\n==============================\n\n");
+			freeMessege(&msg_out);
 		}
-		initMessege(msg_out, "CLIENT_MAIN_MANU", SendStr, NULL, NULL, NULL, NULL);
-		return TRUE;
+
+		freeMessege(&msg_in);
+		
 	}
-	else if (strcmp(g_msg_in->type, SERVER_APPROVED) == 0)
-	{
-		//printf(SERVER_APPROVED_MSG);
-	}
-	else if (strcmp(g_msg_in->type, SERVER_DENIED) == 0)
-	{
-		//printf(SERVER_DENIED_MSG);
-	}
-	else if (strcmp(g_msg_in->type, SERVER_INVITE) == 0)
-	{
-		// DO SOMETHING
-	}
-	else if (strcmp(g_msg_in->type, SERVER_PLAYER_MOVE_REQUEST) == 0)
-	{
-		printf(SERVER_PLAYER_MOVE_REQUEST_MSG);
-	}
-	else if (strcmp(g_msg_in->type, SERVER_GAME_RESULTS) == 0)
-	{
-		//printf(SERVER_GAME_RESULTS_MSG);
-	}
-	else if (strcmp(g_msg_in->type, SERVER_GAME_OVER_MANU) == 0)
-	{
-		printf(SERVER_GAME_OVER_MANU_MSG);
-	}
-	else if (strcmp(g_msg_in->type, SERVER_OPPONENT_QUIT) == 0)
-	{
-		//printf(SERVER_OPPONENT_QUIT_MSG);
-	}
-	else if (strcmp(g_msg_in->type, SERVER_NO_OPPONENTS) == 0)
-	{
-		printf("SERVER_NO_OPPONENTS_MSG");
-	}
-	else if (strcmp(g_msg_in->type, SERVER_LEADERBOARD) == 0)
-	{
-		printf("Print leader board\n");
-	}
-	else if (strcmp(g_msg_in->type, SERVER_LEADERBOARD_MANU) == 0)
-	{
-		printf(SERVER_LEADERBOARD_MANU_MSG);
-	}
-	else
-		printf("seems we don't handle this message type: %s", g_msg_in->type);
 
 	return TRUE;
+
 }
+

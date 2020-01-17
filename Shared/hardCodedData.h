@@ -52,3 +52,9 @@ static const char END_OF_MSG = '\n';
 #define RECONNECT 1
 #define EXIT_PROGRAM 2
 
+#define PLAYER_MOVE 100
+#define ROCK 1
+#define PAPER 2
+#define SCISSORS 3
+#define LIZARD 4
+#define SPOCK 5

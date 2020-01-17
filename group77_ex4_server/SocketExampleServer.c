@@ -241,7 +241,10 @@ static DWORD ServiceThread( SOCKET *t_socket )
 	BOOL Done = FALSE;
 	strcpy( SendStr, "Welcome to this server!" );
 	
-	ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MANU, NULL, NULL, NULL, NULL, NULL);
+	ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MANU, "server_param_1", "server_param_2", NULL, NULL, NULL);
+	printf("msg sent\n");
+
+
 	if (ret_val == ERR) {
 		/*TO DO*/
 	}
@@ -275,5 +278,6 @@ MAIN_CLEAN:
 	printf("22222222\n");
 	closesocket( *t_socket );
 	printf("3333\n");
+	exit(0);
 	return 0;
 }

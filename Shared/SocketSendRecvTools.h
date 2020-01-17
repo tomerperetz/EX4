@@ -30,6 +30,20 @@ typedef struct _Messege
 	int params_len_lst[MAX_NUM_OF_PARAMS];
 } Messege;
 
+typedef struct _msg_q_item
+{
+	Messege *data;
+	struct _msg_q_item *prev;
+	struct _msg_q_item *next;
+
+} msg_q_item;
+
+typedef struct _msg_fifo
+{
+	msg_q_item *head;
+	msg_q_item *tail;
+
+} msg_fifo;
 
 // Declerations ----------------------------------------------------------------->
 void printMessege(Messege *msg);
@@ -50,7 +64,6 @@ void getSegement(char *dst_buffer, char *src_buffer, int start_idx, char last_id
 
 int decodeMsg(char *char_arr, Messege *decoded_msg);
 
-
 void printEncodedMessege(char *encoded_msg);
 
 int encodeMessegeAndSend(Messege *msg, SOCKET sd);
@@ -61,6 +74,19 @@ int sendMessegeWrapper(SOCKET sd, char *type, char *param1, char *param2, char *
 	char *param4, char *param5);
 
 int decodeWrapper(Messege *msg, SOCKET *socket);
+
+Messege* msg_q_pop();
+
+int msg_q_insert(Messege *new_msg);
+
+void msg_q_printQ();
+
+void msg_q_freeQ();
+
+void msg_q_init();
+
+
+
 /**
  * SendBuffer() uses a socket to send a buffer.
  *

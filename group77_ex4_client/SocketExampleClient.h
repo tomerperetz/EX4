@@ -10,6 +10,7 @@
 
 #include "../Shared/hardCodedData.h"
 #include "../Shared/SocketExampleShared.h"
+
 #ifndef SOCKET_EXAMPLE_CLIENT_H
 #define SOCKET_EXAMPLE_CLIENT_H
  
@@ -22,8 +23,11 @@ void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option);
 char *getString(FILE* fp);
 
 int tryToReconnect(Socket_info *socket_data, int * try_to_reconnect_answer);
+int checkWaitCodeStatus(DWORD wait_code, BOOL singleNotMultiple);
+int createProgramMutexes();
+int createProgramSemaphores();
 
-
+//int clientStateMachine(Messege *msg_in, Messege *msg_out);
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 #endif // SOCKET_EXAMPLE_CLIENT_H
