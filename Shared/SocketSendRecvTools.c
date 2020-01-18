@@ -3,6 +3,7 @@
 
 msg_fifo *msg_q;
 
+
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 void printMessege(Messege *msg)
 {
@@ -37,7 +38,8 @@ void freeMessege(Messege *msg)
 	}
 
 	for (int i = 0; i < MAX_NUM_OF_PARAMS; i++) {
-		if (msg->params[i] != NULL) {
+		if (msg->params[i] != NULL) 
+		{
 			free(msg->params[i]);
 			msg->params_len_lst[i] = 0;
 		}	
@@ -72,6 +74,7 @@ int initMessege(Messege *msg, char *type, char *param1, char *param2, char *para
 		msg->params[i] = NULL;
 		msg->params_len_lst[i] = 0;
 	}
+
 	if (type == NULL)
 		return ret_val;
 
@@ -374,27 +377,34 @@ int decodeMsg(char *char_arr, Messege *decoded_msg)
 	int flag = 1;
 	int param_idx = 0;
 	char last_char = ':';
+	int ret_val = TRUE;
 
 	// Initializtion
-	decoded_msg->type = NULL;
-	decoded_msg->num_of_params = 0;
-	for (int i = 0; i < MAX_NUM_OF_PARAMS; i++) {
-		decoded_msg->params[i] = NULL;
-		decoded_msg->params_len_lst[i] = 0;
+	ret_val = initMessege(decoded_msg, NULL, NULL, NULL, NULL, NULL, NULL);
+	
+	if (ret_val != TRUE)
+	{
+		printf("Error initializing messege in decoder!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		return ERR;
 	}
-
-	decoded_msg->num_of_params = 0;
 
 	for (idx=0; char_arr[idx]!='\n'; idx++)
 	{
 		// Calc paramter length
 		len = getLen(char_arr, idx, last_char);
 		last_idx = idx + len;
-		// allocate memory
 		// first iteration, this is the messege type
 		if (flag)
 		{
+			// allocate memory
 			decoded_msg->type = (char*)malloc((len + 1) * sizeof(char));
+			if (decoded_msg->type == NULL)
+			{
+				raiseError(4, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+				return ERR;
+			}
+			
 			getSegement(decoded_msg->type, char_arr, idx, last_idx);
 			last_char = ';';
 			flag = 0;
@@ -404,6 +414,11 @@ int decodeMsg(char *char_arr, Messege *decoded_msg)
 		else
 		{
 			decoded_msg->params[param_idx] = (char*)malloc((len + 1) * sizeof(char));
+			if (decoded_msg->params[param_idx] == NULL)
+			{
+				raiseError(4, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+				return ERR;
+			}
 
 			// update corresponding struct field
 			getSegement(decoded_msg->params[param_idx], char_arr, idx, last_idx);
@@ -424,6 +439,7 @@ int decodeMsg(char *char_arr, Messege *decoded_msg)
 
 int decodeWrapper(Messege *msg, SOCKET *socket) {
 	char *AcceptedStr = NULL;
+	int ret_val = TRUE;
 	TransferResult_t RecvRes;
 
 	RecvRes = ReceiveString(&AcceptedStr, *socket);
@@ -431,25 +447,30 @@ int decodeWrapper(Messege *msg, SOCKET *socket) {
 	{
 		printf("Service socket error while reading, closing thread.\n");
 		closesocket(*socket);
+		raiseError(9, __FILE__, __func__, __LINE__, ERROR_ID_9_CONNECTION);
 		return ERR;
 	}
 	else if (RecvRes == TRNS_DISCONNECTED)
 	{
 		printf("Connection closed while reading, closing thread.\n");
 		closesocket(*socket);
+		raiseError(9, __FILE__, __func__, __LINE__, ERROR_ID_9_CONNECTION);
 		return ERR;
 	}
 	else
 	{
-		decodeMsg(AcceptedStr, msg);
+		ret_val = decodeMsg(AcceptedStr, msg);
+		if (ret_val == ERR) return ERR;
 	}
+
 	free(AcceptedStr);
+	
 	return TRUE;
 }
 
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-/* Messege list tools */
+/* Messege linked list tools */
 
 void msg_q_init()
 {
@@ -460,22 +481,27 @@ void msg_q_init()
 	
 }
 
-Messege* msg_q_pop()
+int msg_q_pop(Messege *msg_dst)
 {
 	extern msg_fifo *msg_q;
 	msg_q_item *temp;
-	Messege *data = NULL;
+	Messege *pop_data = NULL;
 	if (msg_q->head == NULL)
 	{ 
 		// No msg in head of line
-		return NULL;
+		return FALSE;
 	}
 	
-	data = msg_q->head->data;
+	// init dst msg with current head data
+	pop_data = msg_q->head->data;
+	initMessege(msg_dst, pop_data->type, pop_data->params[0], pop_data->params[1], pop_data->params[2], pop_data->params[3], pop_data->params[4]);
+
+	// replace head, free old head
 	temp = msg_q->head;
 	msg_q->head = msg_q->head->prev;
 	free(temp);
-	return data;
+
+	return TRUE;
 
 }
 
@@ -483,41 +509,64 @@ int msg_q_insert(Messege *src_msg)
 {
 	extern msg_fifo *msg_q;
 	msg_q_item *new_node;
-	Messege *dst_msg = (Messege*)malloc(sizeof(Messege*));
+	Messege *dst_msg;
 	int ret_val = ERR;
 
-	ret_val = copyMsg(src_msg, dst_msg);
-	
-	if (ret_val == ERR)
+	// allocate memory for new msg in line
+	dst_msg = (Messege*)malloc(sizeof(Messege));
+	if (dst_msg == NULL)
+	{
+		raiseError(4, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
 		return ERR;
+	}
 
+	// copy src msg fields into dst msg
+	ret_val = copyMsg(src_msg, dst_msg);
+	if (ret_val == ERR)
+	{
+		printf("Error in copy msg\n");
+		raiseError(4, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+		return ERR;
+	}
+		
+	// allocate new node on list
 	new_node = (msg_q_item*)malloc(sizeof(msg_q_item));
-
 	if (new_node == NULL)
 	{
 		raiseError(4, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
 		return ERR;
 	}
 
-	// no items in line
+	// add to msg Q
+	// case A: no items in line
 	if (msg_q->head == NULL)
 	{
-		
+		// head is the new msg node
 		msg_q->head = new_node;
 		msg_q->tail = new_node;
+
+		// new node data is dst msg
 		new_node->data = dst_msg;
 		new_node->next = NULL;
 		new_node->prev = NULL;
-
 	}
-	// items in line, add elemnt last in line
+
+	// case B: items in line, add elemnt last in line
 	else
 	{
+		// tail prev pointing to new node
 		msg_q->tail->prev = new_node;
+
+		// new node next pointing to old tail
 		new_node->next = msg_q->tail;
+
+		// new tail is new node
 		msg_q->tail = new_node;
+
+		// new node data is dst msg, prev is null - this is the tail.
 		new_node->data = dst_msg;
 		new_node->prev = NULL;
+
 	}
 
 	return TRUE;
@@ -531,6 +580,7 @@ void msg_q_printQ()
 	curr = msg_q->head;
 	printf("======================\n");
 	printf("Messege Q:\n");
+	printf("======================\n");
 	if (curr == NULL)
 	{
 		printf("no items in list\n");
@@ -551,6 +601,13 @@ void msg_q_freeQ()
 	extern msg_fifo *msg_q;
 	msg_q_item *curr = msg_q->head;
 
+
+	printf("releasing Q\n");
+	// if line is empty
+	if (curr == NULL)
+		return;
+
+	// else free line
 	do
 	{
 		freeMessege(curr->data);
@@ -558,4 +615,6 @@ void msg_q_freeQ()
 		free(curr->next);
 	} while (curr != NULL);
 
+
 }
+

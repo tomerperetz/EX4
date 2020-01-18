@@ -75,7 +75,7 @@ int sendMessegeWrapper(SOCKET sd, char *type, char *param1, char *param2, char *
 
 int decodeWrapper(Messege *msg, SOCKET *socket);
 
-Messege* msg_q_pop();
+int msg_q_pop(Messege *msg_dst);
 
 int msg_q_insert(Messege *new_msg);
 
@@ -84,8 +84,6 @@ void msg_q_printQ();
 void msg_q_freeQ();
 
 void msg_q_init();
-
-
 
 /**
  * SendBuffer() uses a socket to send a buffer.
@@ -152,5 +150,6 @@ TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd );
 
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+
 
 #endif // SOCKET_SEND_RECV_TOOLS_H

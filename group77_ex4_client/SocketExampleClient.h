@@ -24,7 +24,6 @@ char *getString(FILE* fp);
 
 int tryToReconnect(Socket_info *socket_data, int * try_to_reconnect_answer);
 int checkWaitCodeStatus(DWORD wait_code, BOOL singleNotMultiple);
-int createProgramMutexes();
 int createProgramSemaphores();
 
 //int clientStateMachine(Messege *msg_in, Messege *msg_out);
