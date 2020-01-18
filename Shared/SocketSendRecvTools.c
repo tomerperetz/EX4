@@ -558,3 +558,72 @@ void msg_q_freeQ()
 		free(curr->next);
 	}
 }
+
+char *getString(FILE* fp)
+{
+	//The size is extended by the input with the value of the provisional
+	char *str;
+	int ch;
+	size_t len = 0;
+	size_t size = 10;
+	str = realloc(NULL, sizeof(char)*size);//size is start size
+	if (str == NULL) {
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+		return str;
+	}
+	while (EOF != (ch = fgetc(fp)) && ch != '\n') {
+		str[len++] = ch;
+		if (len == size) {
+			str = realloc(str, sizeof(char)*(size += 16));
+			if (str == NULL) {
+				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
+				return str;
+			}
+		}
+	}
+	str[len++] = '\0';
+
+	return realloc(str, sizeof(char)*len);
+}
+
+void lowerCase(char *str)
+{
+	for (int i = 0; str[i] != '\0'; i++)
+		str[i] = tolower(str[i]);
+}
+
+int checkWaitCodeStatus(DWORD wait_code, BOOL singleNotMultiple) {
+	/*
+	Description: check wait code status from waitForMultipleObject o rwaitForSingleObject function
+	parameters:
+			 - DWORD wait_code - wait code recieved
+			 - BOOL singleNotMultiple - TRUE for multiple, FALSE for single
+
+	Returns: TRUE if succeded, ERR o.w
+	*/
+
+	int retVal1 = ERR;
+	DWORD errorMessageID;
+	switch (wait_code)
+	{
+	case WAIT_TIMEOUT:
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("details: Timeout error when waiting\n");
+		break;
+	case WAIT_FAILED:
+		errorMessageID = GetLastError();
+		printf("%d\n", errorMessageID);
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("details: Timeout error when waiting\n");
+		break;
+	case WAIT_OBJECT_0:
+		retVal1 = TRUE;
+		break;
+	case WAIT_ABANDONED_0:
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("details: WAIT ANDONED\n");
+		break;
+	}
+
+	return retVal1;
+}

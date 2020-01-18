@@ -39,6 +39,9 @@ static const char ERROR_ID_8_INTER_THREAD[100] = \
 "Error occurred in one or more threads. ";
 static const char ERROR_ID_9_CONNECTION[100] = \
 "Error occurred in connection. \n ";
+static const char ERROR_ID_10_SOCKET[150] =
+"SOCKET ERROR: Error occurred in threads creating function or closing function. please restart the program.\n";
+
 // Declerations -------------------------------------------------------------------------------------------------------
 
 void raiseError(int error_id, const char *file_path, const char *function_name, int line, const char *description);

@@ -1,3 +1,4 @@
+#pragma once
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 /* 
  This file was written for instruction purposes for the 
@@ -10,9 +11,23 @@
 #ifndef SOCKET_EXAMPLE_SERVER_H
 #define SOCKET_EXAMPLE_SERVER_H
 #include "../Shared/hardCodedData.h"
+#include "../Shared/SocketSendRecvTools.h"
+
+#define USERNAME_MAX_LEN 20
+#define DONT_CLOSE_BRUTALLY 3
+#define CLOSE_BRUTALLY = 1
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
+typedef struct _Player
+{
+	int win;
+	int loss;
+	char name[USERNAME_MAX_LEN];
+} Player;
+
 
 void MainServer(char port_num_char[5]);
+static DWORD exitProgramThread();
+
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
