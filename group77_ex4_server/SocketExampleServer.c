@@ -252,14 +252,15 @@ static DWORD ServiceThread( SOCKET *t_socket )
 	{		
 		
 		Messege msg_struct;
+
 		ret_val = decodeWrapper(&msg_struct, t_socket);
 		if (ret_val == ERR) {
 			/*TO DO*/
 			printf("11111\n");
 			goto MAIN_CLEAN;
 		}
-		printMessege(&msg_struct);	
 
+		printMessege(&msg_struct);	
 
 		// This is where we will use the server state machine
 		// for demo only print do something and send insulting text to client
@@ -271,6 +272,7 @@ static DWORD ServiceThread( SOCKET *t_socket )
 		sendMessegeWrapper(*t_socket, SERVER_MAIN_MANU, "param1", "param2", "param3",
 			"param4", "param5");
 		freeMessege(&msg_struct);
+
 	}
 	
 	printf("Conversation ended.\n");

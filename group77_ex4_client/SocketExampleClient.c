@@ -139,6 +139,7 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 		return ERR;
 	}
 
+
 	return TRUE;
 }
 
@@ -153,8 +154,8 @@ static DWORD RecvDataThread(void)
 	LONG previous_count;
 	while (1)
 	{
-
 		Messege msg_struct;
+
 		ret_val = decodeWrapper(&msg_struct, &m_socket_data.socket);
 		
 		if (ret_val == ERR) {
@@ -162,11 +163,6 @@ static DWORD RecvDataThread(void)
 			printf("ERRRRORRRR\n");
 		}
 		
-
-		/*=====================
-			MUTEX START
-		=====================*/
-
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
 
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE)
@@ -175,10 +171,7 @@ static DWORD RecvDataThread(void)
 		printf("\n==================\nRECV THREAD START\n==================\n\n");
 
 		ret_val = msg_q_insert(&msg_struct);
-		
-
 		msg_q_printQ();
-		
 
 		if (ret_val != TRUE)
 			return ERR;
@@ -187,15 +180,11 @@ static DWORD RecvDataThread(void)
 		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
 		if (release_res == FALSE) goto Error_And_Close;
 
-		/*=====================
-			MUTEX END
-		=====================*/
-
 	Error_And_Close:
 		if (ret_val == ERR) 
 			return ERR;
 		
-		//freeMessege(&msg_struct);
+		freeMessege(&msg_struct);
 	}
 	return 0;
 }
@@ -206,21 +195,22 @@ static DWORD RecvDataThread(void)
 static DWORD SendDataThread(void)
 {	
 	int ret_val = TRUE;
-	
 	int wait_code = TRUE;
 	int release_res = TRUE;
 	LONG previous_count;
+
+
 	while (TRUE) 
 	{
+		//Messege *msg_out = (Messege*)malloc(sizeof(Messege*));
+		//Messege *curr_msg = (Messege*)malloc(sizeof(Messege*));
 		Messege msg_out;
-		Messege *curr_msg = NULL;
+		Messege *curr_msg;
 /*		
-		=====================
-			STATE MACHINE
-		=====================
+		==========================================
+			Use messege queue semaphore
+		==========================================
 */
-		
-
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
 
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE)
@@ -228,50 +218,39 @@ static DWORD SendDataThread(void)
 
 		printf("\n==================\nSEND THREAD START\n==================\n\n");
 
-		msg_q_printQ();
+		/*msg_q_printQ();*/
 
 		curr_msg = msg_q_pop();
-
-
 		
+		printf("done popping\n");
 
-		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
 		if (release_res == FALSE)
 			return ERR;
 
 		if (curr_msg != NULL)
-		{
-			
+		{			
 			ret_val = clientStateMachine(curr_msg, &msg_out);
 			if (ret_val == ERR)
 				return ERR;
 
 			else if (ret_val == TRUE)
 			{
-				printf("\n==============================\n\n");
-				printf("Your messege decoded:\n");
-				printMessege(&msg_out);
-
-				printf("Your messege encoded:\n");
-				printf("\n==============================\n\n");
-				freeMessege(&msg_out);
-				
+				if (curr_msg != NULL)
+				{
+					printf("\n==============================\n\n");
+					printf("Your messege decoded:\n");
+					printMessege(&msg_out);
+					sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], msg_out.params[1], msg_out.params[2], msg_out.params[3], msg_out.params[4]);
+					printf("before free msg\n");
+					freeMessege(&msg_out);
+					printf("after free msg\n");
+				}
 			}
 		}
-		
-		free(curr_msg);
+
+		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
+
 		printf("\n==================\nSEND THREAD END\n==================\n\n");
-
-/*
-		=====================
-		   ENCODE AND SEND
-		=====================
-*/
-		
-		//sendMessegeWrapper(m_socket_data.socket, "ALL_GOOD", "111", NULL, NULL, NULL, NULL);
-		//sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], msg_out.params[1], \
-		//	msg_out.params[2], msg_out.params[3], msg_out.params[4]);
-
 	}
 }
 
@@ -466,7 +445,6 @@ MAIN_CLEAN:
     
 	return;
 }
-
 
 
 //==========================================================================

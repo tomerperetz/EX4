@@ -19,7 +19,7 @@ int copyMsg(Messege *msg_src, Messege *msg_dst)
 {	
 	int ret_val = ERR;
 
-	ret_val = initMessege(msg_dst, SERVER_MAIN_MANU, msg_src->params[0], msg_src->params[1], msg_src->params[2], \
+	ret_val = initMessege(msg_dst, msg_src->type, msg_src->params[0], msg_src->params[1], msg_src->params[2], \
 		msg_src->params[3], msg_src->params[4]);
 	if (ret_val != TRUE)\
 	{
@@ -466,26 +466,27 @@ Messege* msg_q_pop()
 	msg_q_item *temp;
 	Messege *data = NULL;
 	if (msg_q->head == NULL)
+	{ 
 		// No msg in head of line
 		return NULL;
-
-	msg_q_printQ();
+	}
+	
 	data = msg_q->head->data;
 	temp = msg_q->head;
 	msg_q->head = msg_q->head->prev;
 	free(temp);
-	
 	return data;
+
 }
 
-int msg_q_insert(Messege *new_msg)
+int msg_q_insert(Messege *src_msg)
 {
 	extern msg_fifo *msg_q;
 	msg_q_item *new_node;
-	Messege local_msg;
+	Messege *dst_msg = (Messege*)malloc(sizeof(Messege*));
 	int ret_val = ERR;
 
-	ret_val = copyMsg(new_msg, &local_msg);
+	ret_val = copyMsg(src_msg, dst_msg);
 	
 	if (ret_val == ERR)
 		return ERR;
@@ -504,7 +505,7 @@ int msg_q_insert(Messege *new_msg)
 		
 		msg_q->head = new_node;
 		msg_q->tail = new_node;
-		new_node->data = new_msg;
+		new_node->data = dst_msg;
 		new_node->next = NULL;
 		new_node->prev = NULL;
 
@@ -515,10 +516,9 @@ int msg_q_insert(Messege *new_msg)
 		msg_q->tail->prev = new_node;
 		new_node->next = msg_q->tail;
 		msg_q->tail = new_node;
-		new_node->data = new_msg;
+		new_node->data = dst_msg;
 		new_node->prev = NULL;
 	}
-
 
 	return TRUE;
 
@@ -527,7 +527,7 @@ int msg_q_insert(Messege *new_msg)
 void msg_q_printQ()
 {
 	extern msg_fifo *msg_q;
-	msg_q_item *curr = (msg_q_item*)malloc(sizeof(msg_q_item));
+	msg_q_item *curr;
 	curr = msg_q->head;
 	printf("======================\n");
 	printf("Messege Q:\n");
@@ -551,10 +551,11 @@ void msg_q_freeQ()
 	extern msg_fifo *msg_q;
 	msg_q_item *curr = msg_q->head;
 
-	while (curr->prev != NULL)
+	do
 	{
 		freeMessege(curr->data);
 		curr = curr->prev;
 		free(curr->next);
-	}
+	} while (curr != NULL);
+
 }
