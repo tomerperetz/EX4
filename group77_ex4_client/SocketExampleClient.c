@@ -140,10 +140,10 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 	int ret_val = TRUE;
 	int user_answer = ERR;
 
-	if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_MAIN_MANU))
+	if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_MAIN_MENU))
 	{
-	MAIN_MANU:
-		printMenuAndGetAnswer(SERVER_MAIN_MANU_MSG, &user_answer, 4);
+	MAIN_MENU:
+		printMenuAndGetAnswer(SERVER_MAIN_MENU_MSG, &user_answer, 4);
 		switch (user_answer)
 		{
 		case 1:
@@ -165,14 +165,14 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_APPROVED))
 	{
-		printf(SERVER_APPROVED_MSG, msg_in->params[0], msg_in->params[1]);
+		printf(SERVER_APPROVED_MSG);
 		return NO_NEED_TO_REPLY;
 	}
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_DENIED))
 	{
 		printf(SERVER_DENIED_MSG_ARGS, msg_in->params[0], msg_in->params[1], msg_in->params[2]);
-		printMenuAndGetAnswer(SERVER_DENIED_MSG_MANU, &user_answer, 2);
+		printMenuAndGetAnswer(SERVER_DENIED_MSG_MENU, &user_answer, 2);
 		switch (user_answer)
 		{
 		case 1:
@@ -220,16 +220,16 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_GAME_RESULTS))
 	{
-		if (msg_in->params[3] != NULL)
+		if (STRINGS_ARE_EQUAL(msg_in->params[3], "DRAW"))
 			printf(SERVER_GAME_RESULTS_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2], msg_in->params[3]);
 		else
 			printf(SERVER_GAME_RESULTS_DRAW_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2]);
 		return NO_NEED_TO_REPLY;
 	}
 
-	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_GAME_OVER_MANU))
+	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_GAME_OVER_MENU))
 	{
-		printMenuAndGetAnswer(SERVER_GAME_OVER_MANU_MSG, &user_answer, 2);
+		printMenuAndGetAnswer(SERVER_GAME_OVER_MENU_MSG, &user_answer, 2);
 
 		switch (user_answer)
 		{
@@ -237,7 +237,7 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 			initMessege(msg_out, msg_in->params[0], NULL, NULL, NULL, NULL, NULL);
 			break;
 		case 2:
-			goto MAIN_MANU;
+			goto MAIN_MENU;
 			break;
 		}
 
@@ -247,19 +247,19 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_OPPONENT_QUIT))
 	{
 		printf(SERVER_OPPONENT_QUIT_MSG, msg_in->params[0]);
-		goto MAIN_MANU;
+		goto MAIN_MENU;
 	}
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_NO_OPPONENTS))
 	{
 		printf(SERVER_NO_OPPONENTS_MSG);
-		goto MAIN_MANU;
+		goto MAIN_MENU;
 	}
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_LEADERBOARD))
 	{
 		printf("Print leader board somehow\n");
-		goto MAIN_MANU;
+		goto MAIN_MENU;
 	}
 
 	else
