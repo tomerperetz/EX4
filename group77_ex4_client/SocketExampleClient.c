@@ -383,15 +383,15 @@ static DWORD SendDataThread(void)
 	int release_res = TRUE;
 	LONG previous_count;
 
-	// Send client request messege to server
-	ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", g_argv[3], NULL, NULL, NULL, NULL);
-	if (ret_val == ERR)
-	{
-		// free curr_msg
-		printf("Client state machine error\n");
-		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-		goto UPDATE_FLAG_AND_EXIT_THREAD;
-	}
+	//// Send client request messege to server
+	//ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", g_argv[3], NULL, NULL, NULL, NULL);
+	//if (ret_val == ERR)
+	//{
+	//	// free curr_msg
+	//	printf("Client state machine error\n");
+	//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+	//	goto UPDATE_FLAG_AND_EXIT_THREAD;
+	//}
 
 	while (TRUE) 
 	{
