@@ -241,7 +241,7 @@ static DWORD ServiceThread( SOCKET *t_socket )
 	BOOL Done = FALSE;
 	strcpy( SendStr, "Welcome to this server!" );
 	
-	ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MANU, "server_param_1", "server_param_2", NULL, NULL, NULL);
+	ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MENU, "server_param_1", "server_param_2", NULL, NULL, NULL);
 	printf("msg sent\n");
 
 
@@ -269,7 +269,7 @@ static DWORD ServiceThread( SOCKET *t_socket )
 		printf("This is the state machine \n\n");
 		printf("#########################################\n\n");
 
-		sendMessegeWrapper(*t_socket, SERVER_MAIN_MANU, "param1", "param2", "param3",
+		sendMessegeWrapper(*t_socket, SERVER_MAIN_MENU, "param1", "param2", "param3",
 			"param4", "param5");
 		freeMessege(&msg_struct);
 
