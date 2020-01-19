@@ -2,6 +2,7 @@
 
 #include "../Shared/hardCodedData.h"
 #include "./client_services.h"
+#include "../Shared/SocketSendRecvTools.h"
 
 // defines --------------------------------------------------------------------->
 #define NUM_OF_THREADS 2
@@ -10,9 +11,10 @@
 #define CTRL_THREAD_IDX 2
 
 // globals --------------------------------------------------------------------->
+
 Socket_info m_socket_data;
 static HANDLE msg_q_semaphore;
-static HANDLE exit_semaphore;
+static HANDLE socket_semaphore;
 static HANDLE hThread[NUM_OF_THREADS];
 int send_flag = FALSE;
 int recv_flag = FALSE;
@@ -20,38 +22,6 @@ int close_send_brutally = TRUE;
 int close_recv_brutally = TRUE;
 
 
-void lowerCase(char *str)
-{
-	for (int i = 0; str[i] != '\0'; i++)
-		str[i] = tolower(str[i]);
-}
-
-char *getString(FILE* fp)
-{
-	//The size is extended by the input with the value of the provisional
-	char *str;
-	int ch;
-	size_t len = 0;
-	size_t size = 10;
-	str = realloc(NULL, sizeof(char)*size);//size is start size
-	if (str == NULL) {
-		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
-		return str;
-	}
-	while (EOF != (ch = fgetc(fp)) && ch != '\n') {
-		str[len++] = ch;
-		if (len == size) {
-			str = realloc(str, sizeof(char)*(size += 16));
-			if (str == NULL) {
-				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
-				return str;
-			}
-		}
-	}
-	str[len++] = '\0';
-
-	return realloc(str, sizeof(char)*len);
-}
 
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 {
@@ -63,15 +33,15 @@ void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 		if (user_answer == NULL) {
 			*answer = ERR;
 		}
-		if (STRINGS_ARE_EQUAL(user_answer, "1") || STRINGS_ARE_EQUAL(user_answer, "2")) {
+		if ((STRINGS_ARE_EQUAL(user_answer, "1") || STRINGS_ARE_EQUAL(user_answer, "2"))&& max_menu_option != PLAYER_MOVE) {
 			done = TRUE;
 			*answer = atoi(user_answer);
 		}
-		else if (STRINGS_ARE_EQUAL(user_answer, "3") && max_menu_option >= 3) {
+		else if ((STRINGS_ARE_EQUAL(user_answer, "3") && max_menu_option >= 3) && max_menu_option != PLAYER_MOVE) {
 			done = TRUE;
 			*answer = atoi(user_answer);
 		}
-		else if (STRINGS_ARE_EQUAL(user_answer, "4") && max_menu_option >= 4) {
+		else if ((STRINGS_ARE_EQUAL(user_answer, "4") && max_menu_option >= 4) && max_menu_option != PLAYER_MOVE) {
 			done = TRUE;
 			*answer = atoi(user_answer);
 		}
@@ -147,16 +117,16 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 		switch (user_answer)
 		{
 		case 1:
-			initMessege(msg_out, "CLIENT_VERSUS", NULL, NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_VERSUS, NULL, NULL, NULL, NULL, NULL);
 			break;
 		case 2:
-			initMessege(msg_out, "CLIENT_CPU", NULL, NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_CPU, NULL, NULL, NULL, NULL, NULL);
 			break;
 		case 3:
-			initMessege(msg_out, "CLIENT_LEADERBOARD", NULL, NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_LEADERBOARD, NULL, NULL, NULL, NULL, NULL);
 			break;
 		case 4:
-			initMessege(msg_out, "CLIENT_DISCONNECT", NULL, NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_DISCONNECT, NULL, NULL, NULL, NULL, NULL);
 			break;
 		}
 
@@ -199,19 +169,19 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 		switch (user_answer)
 		{
 		case ROCK:
-			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "ROCK", NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_PLAYER_MOVE, "ROCK", NULL, NULL, NULL, NULL);
 			break;
 		case PAPER:
-			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "PAPER", NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_PLAYER_MOVE, "PAPER", NULL, NULL, NULL, NULL);
 			break;
 		case SCISSORS:
-			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "SCISSORS", NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_PLAYER_MOVE, "SCISSORS", NULL, NULL, NULL, NULL);
 			break;
 		case LIZARD:
-			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "LIZARD", NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_PLAYER_MOVE, "LIZARD", NULL, NULL, NULL, NULL);
 			break;
 		case SPOCK:
-			initMessege(msg_out, "CLIENT_PLAYER_MOVE", "SPOCK", NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_PLAYER_MOVE, "SPOCK", NULL, NULL, NULL, NULL);
 			break;
 		}
 
@@ -221,9 +191,9 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_GAME_RESULTS))
 	{
 		if (STRINGS_ARE_EQUAL(msg_in->params[3], "DRAW"))
-			printf(SERVER_GAME_RESULTS_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2], msg_in->params[3]);
-		else
 			printf(SERVER_GAME_RESULTS_DRAW_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2]);
+		else
+			printf(SERVER_GAME_RESULTS_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2], msg_in->params[3]);
 		return NO_NEED_TO_REPLY;
 	}
 
@@ -234,10 +204,10 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 		switch (user_answer)
 		{
 		case 1:
-			initMessege(msg_out, msg_in->params[0], NULL, NULL, NULL, NULL, NULL);
+			initMessege(msg_out, CLIENT_REPLAY, NULL, NULL, NULL, NULL, NULL);
 			break;
 		case 2:
-			goto MAIN_MENU;
+			initMessege(msg_out, CLIENT_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
 			break;
 		}
 
@@ -247,24 +217,25 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_OPPONENT_QUIT))
 	{
 		printf(SERVER_OPPONENT_QUIT_MSG, msg_in->params[0]);
-		goto MAIN_MENU;
+		initMessege(msg_out, CLIENT_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
+		return TRUE;
 	}
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_NO_OPPONENTS))
 	{
 		printf(SERVER_NO_OPPONENTS_MSG);
-		goto MAIN_MENU;
+		initMessege(msg_out, CLIENT_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
 	}
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_LEADERBOARD))
 	{
 		printf("Print leader board somehow\n");
-		goto MAIN_MENU;
+		initMessege(msg_out, CLIENT_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);;
 	}
 
 	else
 	{
-		printf("seems we don't handle this message type: %s", msg_in->type);
+		printf("seems we don't handle this message type: %s\n", msg_in->type);
 		return ERR;
 	}
 
@@ -323,35 +294,31 @@ static DWORD RecvDataThread(void)
 		ret_val = initMessege(&msg_struct, NULL, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val == ERR) goto UPDATE_FLAG_AND_EXIT_THREAD;
 
-		// reciving semaphore - only recieve if not sending
-		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
-		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto UPDATE_FLAG_AND_EXIT_THREAD;
-			
 
-		printf("\n==================\nRECV THREAD START\n==================\n\n");
-
+		//wait_code = WaitForSingleObject(socket_semaphore, INFINITE);
+		//if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto EXIT_AND_RLS_SOCKET_SMPHR;
+		
 		// decode messege recieved from server and load it to msg_struct
 		ret_val = decodeWrapper(&msg_struct, &m_socket_data.socket);
-		if (ret_val == ERR) goto UPDATE_FLAG_AND_EXIT_THREAD;
 
+		//release_res = ReleaseSemaphore(socket_semaphore, 1, &previous_count);
+		//if (release_res == FALSE)
+		//{
+		//	printf("Realese semaphore error!\n");
+		//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		//	goto UPDATE_FLAG_AND_EXIT_THREAD;
+		//}
+
+		if (ret_val == ERR) goto EXIT_AND_RLS_SMPHR;
 		// print msg for debugging
 		//printMessege(&msg_struct);
 		
+		// reciving semaphore - only recieve if not sending
+		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto EXIT_AND_RLS_SMPHR;
+
 		// insert to messege Q
 		ret_val = msg_q_insert(&msg_struct);
-		if (ret_val != TRUE)
-		{
-			freeMessege(&msg_struct);
-			return ERR;
-		}
-
-		// free Messege struct. will be allocated again on next loop
-		freeMessege(&msg_struct);
-
-		// print msg Q for debugging
-		//msg_q_printQ();
-
-		printf("\n==================\nRECV THREAD END\n==================\n\n");
 
 		// done reciving, release semaphore
 		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
@@ -360,7 +327,21 @@ static DWORD RecvDataThread(void)
 			printf("Realese semaphore error!\n");
 			raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
 			goto UPDATE_FLAG_AND_EXIT_THREAD;
-		}	
+		}
+
+		if (ret_val != TRUE)
+		{
+			freeMessege(&msg_struct);
+			goto UPDATE_FLAG_AND_EXIT_THREAD;
+		}
+
+
+		// free Messege struct. will be allocated again on next loop
+		freeMessege(&msg_struct);
+
+		// print msg Q for debugging
+		//msg_q_printQ();
+
 	}
 
 	return TRUE;
@@ -368,6 +349,30 @@ static DWORD RecvDataThread(void)
 UPDATE_FLAG_AND_EXIT_THREAD:
 	recv_flag = TRUE;
 	return ERR;
+
+EXIT_AND_RLS_SMPHR:
+	release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
+	if (release_res == FALSE)
+	{
+		printf("Realese semaphore error!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		goto UPDATE_FLAG_AND_EXIT_THREAD;
+	}
+	recv_flag = TRUE;
+	return ERR;
+
+
+EXIT_AND_RLS_SOCKET_SMPHR:
+	release_res = ReleaseSemaphore(socket_semaphore, 1, &previous_count);
+	if (release_res == FALSE)
+	{
+		printf("Realese semaphore error!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		goto UPDATE_FLAG_AND_EXIT_THREAD;
+	}
+	send_flag = TRUE;
+	return ERR;
+
 }
 
 //Sending data to the server
@@ -376,22 +381,12 @@ static DWORD SendDataThread(void)
 	extern int send_flag;
 	extern int recv_flag;
 	extern int close_send_brutally;
-	extern char **g_argv;
+	
 
 	int ret_val = TRUE;
 	int wait_code = TRUE;
 	int release_res = TRUE;
 	LONG previous_count;
-
-	//// Send client request messege to server
-	//ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", g_argv[3], NULL, NULL, NULL, NULL);
-	//if (ret_val == ERR)
-	//{
-	//	// free curr_msg
-	//	printf("Client state machine error\n");
-	//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-	//	goto UPDATE_FLAG_AND_EXIT_THREAD;
-	//}
 
 	while (TRUE) 
 	{
@@ -415,17 +410,16 @@ static DWORD SendDataThread(void)
 		//use semaphore to verify done reciving and start sending process
 
 
-		printf("\n==================\nSEND THREAD START\n==================\n\n");
-
 		// print messege Q for debugging
 		//msg_q_printQ();
 		
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE)
-			goto UPDATE_FLAG_AND_EXIT_THREAD;
+			goto EXIT_AND_RLS_SMPHR;
 
 		// pop first messege in Q
 		ret_val = msg_q_pop(&curr_msg);
+
 
 		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
 		if (release_res != TRUE)
@@ -436,6 +430,7 @@ static DWORD SendDataThread(void)
 			goto UPDATE_FLAG_AND_EXIT_THREAD;
 			return ERR;
 		}
+
 
 		// if we have msg in Q
 		if (ret_val == TRUE)
@@ -452,14 +447,26 @@ static DWORD SendDataThread(void)
 				freeMessege(&curr_msg);
 				printf("Details: Client state machine error\n");
 				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-				goto UPDATE_FLAG_AND_EXIT_THREAD;
+				goto EXIT_AND_RLS_SMPHR;
 			}
 
 			// in case we have a messege to send back to server
 			else if (ret_val == TRUE)
 			{
+				//wait_code = WaitForSingleObject(socket_semaphore, INFINITE);
+				//if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto EXIT_AND_RLS_SOCKET_SMPHR;
+
 				// encode meseege and send
 				ret_val = sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], msg_out.params[1], msg_out.params[2], msg_out.params[3], msg_out.params[4]);
+				
+				//release_res = ReleaseSemaphore(socket_semaphore, 1, &previous_count);
+				//if (release_res == FALSE)
+				//{
+				//	printf("Realese semaphore error!\n");
+				//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+				//	goto UPDATE_FLAG_AND_EXIT_THREAD;
+				//}
+
 				if (ret_val == ERR)
 				{
 					// free curr_msg
@@ -476,18 +483,41 @@ static DWORD SendDataThread(void)
 			freeMessege(&curr_msg);
 		}
 
-		printf("\n==================\nSEND THREAD END\n==================\n\n");
 
 	}
 	
 	return TRUE;
 
+
 UPDATE_FLAG_AND_EXIT_THREAD:
+	send_flag = TRUE;
+	return ERR;
+
+EXIT_AND_RLS_SMPHR:
+	release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
+	if (release_res == FALSE)
+	{
+		printf("Realese semaphore error!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		goto UPDATE_FLAG_AND_EXIT_THREAD;
+	}
+	send_flag = TRUE;
+	return ERR;
+
+EXIT_AND_RLS_SOCKET_SMPHR:
+	release_res = ReleaseSemaphore(socket_semaphore, 1, &previous_count);
+	if (release_res == FALSE)
+	{
+		printf("Realese semaphore error!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		goto UPDATE_FLAG_AND_EXIT_THREAD;
+	}
 	send_flag = TRUE;
 	return ERR;
 
 
 }
+
 
 // Thread controller - verify both thread are up and runnning
 static DWORD ThreadCtrl(void)
@@ -548,43 +578,16 @@ int createProgramSemaphores()
 		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
 		ret_val = ERR;
 	}
-	return ret_val;
-}
 
-int checkWaitCodeStatus(DWORD wait_code, BOOL singleNotMultiple) {
-	/*
-	Description: check wait code status from waitForMultipleObject o rwaitForSingleObject function
-	parameters:
-			 - DWORD wait_code - wait code recieved
-			 - BOOL singleNotMultiple - TRUE for multiple, FALSE for single
-
-	Returns: TRUE if succeded, ERR o.w
-	*/
-
-	int retVal1 = ERR;
-	DWORD errorMessageID;
-	switch (wait_code)
-	{
-	case WAIT_TIMEOUT:
-		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-		printf("details: Timeout error when waiting\n");
-		break;
-	case WAIT_FAILED:
-		errorMessageID = GetLastError();
-		printf("%d\n", errorMessageID);
-		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-		printf("details: Timeout error when waiting\n");
-		break;
-	case WAIT_OBJECT_0:
-		retVal1 = TRUE;
-		break;
-	case WAIT_ABANDONED_0:
-		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-		printf("details: WAIT ANDONED\n");
-		break;
+	socket_semaphore = NULL;
+	socket_semaphore = CreateSemaphore(NULL, 1, 1, NULL);
+	if (socket_semaphore == NULL) {
+		printf("Semaphore creation failed\n");
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		ret_val = ERR;
 	}
-	
-	return retVal1;
+
+	return ret_val;
 }
 
 //==========================================================================
@@ -653,6 +656,20 @@ void MainClient(char *ip_addres, char *port_num_char)
 	if (try_to_reconnect_answer != CONNECTED) {
 		goto MAIN_CLEAN;
 	}
+
+	// send user name to server
+	extern char **g_argv;
+	// Send client request messege to server
+	//Sleep(3000);
+	//ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", g_argv[3], NULL, NULL, NULL, NULL);
+	//if (ret_val == ERR)
+	//{
+	//	// free curr_msg
+	//	printf("Client state machine error\n");
+	//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+	//	goto MAIN_CLEAN;
+	//}
+
 
 	// create threads
 	hThread[SEND_THREAD_IDX] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SendDataThread, NULL, 0, NULL);

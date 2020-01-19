@@ -1,3 +1,4 @@
+#pragma once
 // Description ----------------------------------------------------------------->
 /* 
  This file was written for instruction purposes for the 
@@ -9,6 +10,7 @@
 // Defines ----------------------------------------------------------------->
 #ifndef SOCKET_SEND_RECV_TOOLS_H
 #define SOCKET_SEND_RECV_TOOLS_H
+
 #define MAX_NUM_OF_PARAMS 5
 
 // Includes ----------------------------------------------------------------->
@@ -85,6 +87,13 @@ void msg_q_freeQ();
 
 void msg_q_init();
 
+
+char *getString(FILE* fp);
+
+void lowerCase(char *str);
+
+int checkWaitCodeStatus(DWORD wait_code, BOOL singleNotMultiple);
+
 /**
  * SendBuffer() uses a socket to send a buffer.
  *
@@ -147,6 +156,7 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int RemainingBytesToReceive,
  * TRNS_FAILED - otherwise
  */ 
 TransferResult_t ReceiveString( char** OutputStrPtr, SOCKET sd );
+
 
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/

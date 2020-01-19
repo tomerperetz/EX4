@@ -12,7 +12,7 @@ Description:
 
 // Includes --------------------------------------------------------------------
 #include "../Shared/hardCodedData.h"
-
+#include "server_services.h"
 
 // Functions --------------------------------------------------------------------
 int main(int argc, char *argv[])
@@ -24,6 +24,8 @@ int main(int argc, char *argv[])
 	Returns: 0 if succeded
 	*/
 
+	SOCKET socket = INVALID_SOCKET;
+
 	int len = 0, ret_val = TRUE;
 
 	// Checks whether the given arguments are valid  
@@ -33,6 +35,6 @@ int main(int argc, char *argv[])
 	}
 
 	MainServer(argv[1]);
-
+	
 	return 0;
 }

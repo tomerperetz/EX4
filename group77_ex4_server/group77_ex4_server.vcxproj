@@ -123,6 +123,7 @@
     <ClCompile Include="..\Shared\lib_osHandler.c" />
     <ClCompile Include="..\Shared\SocketSendRecvTools.c" />
     <ClCompile Include="server_main.c" />
+    <ClCompile Include="server_services.c" />
     <ClCompile Include="SocketExampleServer.c" />
   </ItemGroup>
   <ItemGroup>
@@ -132,6 +133,7 @@
     <ClInclude Include="..\Shared\lib_osHandler.h" />
     <ClInclude Include="..\Shared\SocketExampleShared.h" />
     <ClInclude Include="..\Shared\SocketSendRecvTools.h" />
+    <ClInclude Include="server_services.h" />
     <ClInclude Include="SocketExampleServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

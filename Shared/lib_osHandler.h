@@ -11,7 +11,7 @@ Operation System functions: Proccesses and Threads.
 
 // Includes --------------------------------------------------------------------
 #include "hardCodedData.h"
-
+#define THREAD_ERR 0x55
 // Types -----------------------------------------------------------------------
 
 
