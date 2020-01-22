@@ -273,7 +273,7 @@ static DWORD ServiceThread(int *threadIdx )
 	player.win = 0;
 	player.loss = 0;
 
-/*
+
 	ret_val = decodeWrapper(&first_msg, &ThreadInputs[*threadIdx]);
 	if (!STRINGS_ARE_EQUAL(first_msg.type, CLIENT_REQUEST) || ret_val != TRUE) {
 		freeMessege(&first_msg);
@@ -283,8 +283,8 @@ static DWORD ServiceThread(int *threadIdx )
 		strcpy_s(player.name, USERNAME_MAX_LEN, first_msg.params[0]);
 		printf("Player name: %s\n", player.name);
 		freeMessege(&first_msg);
-	}*/
-	strcpy_s(player.name, USERNAME_MAX_LEN, "Tomer");
+	}
+	
 	ret_val = sendMessegeWrapper(*t_socket, SERVER_APPROVED, NULL, NULL, NULL, NULL, NULL);
 	
 	

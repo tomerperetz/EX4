@@ -112,7 +112,6 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 
 	if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_MAIN_MENU))
 	{
-	MAIN_MENU:
 		printMenuAndGetAnswer(SERVER_MAIN_MENU_MSG, &user_answer, 4);
 		switch (user_answer)
 		{
@@ -595,7 +594,7 @@ int createProgramSemaphores()
 //==========================================================================
 
 
-void MainClient(char *ip_addres, char *port_num_char)
+void MainClient(char *ip_addres, char *port_num_char, char *user_name)
 {
 	extern HANDLE hThread[];
 	DWORD wait_code;
@@ -657,18 +656,14 @@ void MainClient(char *ip_addres, char *port_num_char)
 		goto MAIN_CLEAN;
 	}
 
-	// send user name to server
-	extern char **g_argv;
 	// Send client request messege to server
-	//Sleep(3000);
-	//ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", g_argv[3], NULL, NULL, NULL, NULL);
-	//if (ret_val == ERR)
-	//{
-	//	// free curr_msg
-	//	printf("Client state machine error\n");
-	//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-	//	goto MAIN_CLEAN;
-	//}
+	ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", user_name, NULL, NULL, NULL, NULL);
+	if (ret_val == ERR)
+	{
+		printf("Client state machine error\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		goto MAIN_CLEAN;
+	}
 
 
 	// create threads

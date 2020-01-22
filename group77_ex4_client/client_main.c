@@ -35,6 +35,6 @@ int main(int argc, char *argv[])
 		return TRUE;
 	}
 	//runClientTest();
-	MainClient(argv[1], argv[2]);
+	MainClient(argv[1], argv[2], argv[3]);
 	return 0;
 }
