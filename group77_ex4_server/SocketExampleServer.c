@@ -43,7 +43,7 @@ static DWORD ServiceThread(int *threadIdx);
 static DWORD exitProgramThread();
 void closeControlersThreadsAndResources(HANDLE *exit_program_handle);
 int createServerSemaphores();
-
+void debug(int line);
 // Functions -------------------------------------------------------------->
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
@@ -142,7 +142,6 @@ void MainServer(char port_num_char[5])
 	{
 
 		SOCKET AcceptSocket = accept( MainSocket, NULL, NULL );
-		printf("starting..\n");
 		if ( AcceptSocket == INVALID_SOCKET && (force_exit_flag == FALSE))
 		{
 			printf( "Accepting connection with client failed, error %ld\n", WSAGetLastError() ) ; 
@@ -158,7 +157,6 @@ void MainServer(char port_num_char[5])
         printf( "Client Connected.\n" );
 
 		Ind = FindFirstUnusedThreadSlot();
-		printf("im here\n");
 		if ( Ind == NUM_OF_WORKER_THREADS ) //no slot is available
 		{ 
 			printf( "No slots available for client, dropping the connection.\n" );
@@ -174,7 +172,6 @@ void MainServer(char port_num_char[5])
 			ThreadHandles[Ind] = CreateThread(NULL,0,( LPTHREAD_START_ROUTINE ) ServiceThread,
 														&( Ind ),0,NULL);
 		}
-		printf("done\n");
 		
     } // for ( Loop = 0; Loop < MAX_LOOPS; Loop++ )
 
@@ -240,10 +237,6 @@ static void closeProgramNicely()
 			printf("Waiting.....\n");
 			wait_code = WaitForSingleObject(ThreadHandles[Ind], INFINITE);
 			ret_val = checkWaitCodeStatus(wait_code, TRUE);
-			if (GetExitCodeThread(ThreadHandles[Ind], lpExitCode) == 0) {
-				printf("Failed to get exitcode, error %ld. Ending program.\n", GetLastError());
-				raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-			}
 			if (ret_val == TRUE)
 				CloseHandle(ThreadHandles[Ind]);
 			else
@@ -259,6 +252,10 @@ static void closeProgramNicely()
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 //Service thread is the thread that opens for each successful client connection and "talks" to the client.
+void debug(int line) {
+	printf("im in line %d\n", line);
+}
+
 static DWORD ServiceThread(int *threadIdx ) 
 {
 	extern force_exit_flag;
@@ -290,7 +287,6 @@ static DWORD ServiceThread(int *threadIdx )
 	
 	ret_val = sendMessegeWrapper(*t_socket, SERVER_APPROVED, NULL, NULL, NULL, NULL, NULL);
 	
-	
 	if (ret_val == ERR) {
 		goto MAIN_CLEAN;
 	}
@@ -298,14 +294,14 @@ static DWORD ServiceThread(int *threadIdx )
 	{		
 		
 		Messege msg_struct;
-
+		debug(304);
 		initMessege(&msg_struct, NULL, NULL, NULL, NULL, NULL, NULL);
 		ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val != TRUE || force_exit_flag) {
 			freeMessege(&msg_struct);
 			goto MAIN_CLEAN;
 		}
-
+		debug(311);
 		ret_val = decodeWrapper(&msg_struct, t_socket);
 		if (ret_val != TRUE) {
 			printf("The connection with %s has been lost\n", player.name);
@@ -313,7 +309,7 @@ static DWORD ServiceThread(int *threadIdx )
 			goto MAIN_CLEAN;
 		}
 
-
+		debug(319);
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_CPU)) {
 			ret_val = client_vs_cpu(t_socket, &player);
 			if (ret_val != TRUE) Done = TRUE;
