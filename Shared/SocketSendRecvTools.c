@@ -284,7 +284,6 @@ TransferResult_t ReceiveBuffer( char* OutputBuffer, int BytesToReceive, SOCKET s
 			return TRNS_FAILED;
 		}		
 		else if (BytesJustTransferred == 0) {
-			printf("Connection to server on <ip>:<port> has been lost\nTODO: insert ip and port!!!!!!!!!!!!!\n");
 			return TRNS_DISCONNECTED; // recv() returns zero if connection was gracefully disconnected.
 		}
 			
@@ -446,16 +445,12 @@ int decodeWrapper(Messege *msg, SOCKET *socket) {
 	if (RecvRes == TRNS_FAILED)
 	{
 		printf("Service socket error while reading, closing thread.\n");
-		closesocket(*socket);
 		raiseError(9, __FILE__, __func__, __LINE__, ERROR_ID_9_CONNECTION);
 		return ERR;
 	}
 	else if (RecvRes == TRNS_DISCONNECTED)
 	{
-		printf("Connection closed while reading, closing thread.\n");
-		closesocket(*socket);
-		raiseError(9, __FILE__, __func__, __LINE__, ERROR_ID_9_CONNECTION);
-		return ERR;
+		return EXIT_PROGRAM;
 	}
 	else
 	{
@@ -467,7 +462,6 @@ int decodeWrapper(Messege *msg, SOCKET *socket) {
 	
 	return TRUE;
 }
-
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 /* Messege linked list tools */
