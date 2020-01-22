@@ -53,43 +53,4 @@ MAIN_CLEAN_UP1:
 	return ret_val;
 }
 
-int runClientTest()
-{
-	
-	int send_messege;
-	int ret_val = ERR;
-	char *user_answer;
-	//extern msg_fifo *msg_q;
-	char text[50] = "Please type in a messege sent from server\n";
-	printf("Welcome to client test program. type in decoded messege and test client reaction\n");
-	
-	while (FALSE)
-	{
-		Messege msg_in;
-		Messege msg_out;
-
-		printf("\ntype in server command: <type>\n");
-		user_answer = getString(stdin);
-		initMessege(&msg_in, user_answer, "param1", "param2", "param3", "param4", "param5");
-
-//		send_messege = clientStateMachine(&msg_in, &msg_out);
-		if (send_messege ==TRUE)
-		{
-			printf("\n==============================\n\n");
-			printf("Your messege decoded:\n");
-			printMessege(&msg_out);
-
-			printf("Your messege encoded:\n");
-			encodeMessegeLocal(&msg_out);
-			printf("\n==============================\n\n");
-			freeMessege(&msg_out);
-		}
-
-		freeMessege(&msg_in);
-		
-	}
-
-	return TRUE;
-
-}
 

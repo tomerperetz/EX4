@@ -1,5 +1,6 @@
 #include "SocketSendRecvTools.h"
 #include "./../group77_ex4_client/SocketExampleClient.h"
+#include <stdio.h>
 
 msg_fifo *msg_q;
 
@@ -612,7 +613,6 @@ void msg_q_freeQ()
 
 }
 
-
 char *getString(FILE* fp)
 {
 	//The size is extended by the input with the value of the provisional
@@ -627,16 +627,17 @@ char *getString(FILE* fp)
 	}
 	while (EOF != (ch = fgetc(fp)) && ch != '\n') {
 		str[len++] = ch;
-		if (len == size) {
+		if (len == size) 
+		{
 			str = realloc(str, sizeof(char)*(size += 16));
-			if (str == NULL) {
+			if (str == NULL) 
+			{
 				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_4_MEM_ALLOCATE);
 				return str;
 			}
 		}
 	}
 	str[len++] = '\0';
-
 	return realloc(str, sizeof(char)*len);
 }
 

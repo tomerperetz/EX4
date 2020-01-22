@@ -69,11 +69,4 @@
 
 // Declerations -------------------------------------------------------------------->
 
-//int clientStateMachine(Messege *msg_out, Messege *g_msg_in);
-//
-//void runClientTest();
-//
-
-//
-//void printMsg(Messege *msg);
 

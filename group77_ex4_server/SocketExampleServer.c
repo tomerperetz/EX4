@@ -330,20 +330,25 @@ static DWORD exitProgramThread()
 	extern int force_exit_flag;
 	extern HANDLE ThreadHandles[NUM_OF_WORKER_THREADS];
 	extern SOCKET ThreadInputs[NUM_OF_WORKER_THREADS];
-	char *exit_str = NULL;
 	int exit_code = TRUE;
-	
-	while (TRUE) {
+
+	while (TRUE) 
+	{
+		char *exit_str;
 		exit_str = getString(stdin);
 		if (exit_str == NULL) {
 			force_exit_flag = ERR;
 			break;
 		}
+
 		lowerCase(exit_str);
 		if (STRINGS_ARE_EQUAL(exit_str, "exit")) {
 			force_exit_flag = TRUE;
+			free(exit_str);
 			break;
 		}
+
+		free(exit_str);
 	}
 	printf("+++++++++++++++++++++++++++++++++++++++\n");
 	printf("Closing All Resources And Exiting...\n");
