@@ -21,7 +21,7 @@
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 static DWORD RecvDataThread(void);
 static DWORD SendDataThread(void);
-void MainClient(char *ip_addres, char *port_num_char, char *user_name);
+int MainClient(char *ip_addres, char *port_num_char, char *user_name);
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option);
 
 int tryToReconnect(Socket_info *socket_data, int * try_to_reconnect_answer);

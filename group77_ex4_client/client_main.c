@@ -28,13 +28,21 @@ int main(int argc, char *argv[])
 	Returns: 0 if succeded
 	*/
 	// Checks whether the given arguments are valid  
-
+	int exit_code = RECONNECT;
 
 	if (ensureArgs(argc, CLIENT_EXPECTED_ARGC, argv) != TRUE) {
 		raiseError(1, __FILE__, __func__, __LINE__, ERROR_ID_1_ARGS);
 		return TRUE;
 	}
 	//runClientTest();
-	MainClient(argv[1], argv[2], argv[3]);
+	int i = 0;
+	while (exit_code == RECONNECT)
+	{
+		i++;
+		printf("iter: %d\n", i);
+		exit_code = MainClient(argv[1], argv[2], argv[3]);
+		printf("exit code: %d\n", exit_code);
+	}
+		
 	return 0;
 }

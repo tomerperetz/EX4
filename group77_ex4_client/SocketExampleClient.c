@@ -256,8 +256,8 @@ void TerminateThreadNicelly(int thread_idx)
 	extern HANDLE hThread[NUM_OF_THREADS];
 	LPDWORD exit_code = 0;
 
-	if (GetExitCodeThread(hThread[thread_idx], exit_code) == 0)
-		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+	//if (GetExitCodeThread(hThread[thread_idx], exit_code) == 0)
+	//	raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
 
 	if (CloseHandle(hThread[thread_idx]) == FALSE)
 	{
@@ -336,10 +336,10 @@ static DWORD RecvDataThread(void)
 
 UPDATE_FLAG_AND_EXIT_THREAD:
 	recv_flag = TRUE;
-	printf("im here\n");
+	close_recv_brutally = FALSE;
 	if ((ret_val == EXIT_PROGRAM) && (client_want_to_exit != TRUE))
 	{
-		printf("Connection to server on %s:%s has been lost.", m_socket_data.ip_addres, m_socket_data.port_num_char);
+		printf("Connection to server on %s:%s has been lost.\n", m_socket_data.ip_addres, m_socket_data.port_num_char);
 		connection_failure = TRUE;
 	}
 	return ERR;
@@ -375,14 +375,13 @@ static DWORD SendDataThread(void)
 	extern int send_flag;
 	extern int recv_flag;
 	extern int close_send_brutally;
-	
-
+	BOOL done = FALSE;
 	int ret_val = TRUE;
 	int wait_code = TRUE;
 	int release_res = TRUE;
 	LONG previous_count;
 
-	while (TRUE) 
+	while (!done)
 	{
 		// if recv send closed, stop with this thread as well.
 		if (recv_flag)
@@ -400,12 +399,6 @@ static DWORD SendDataThread(void)
 
 		ret_val = initMessege(&curr_msg, NULL, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val == ERR) goto UPDATE_FLAG_AND_EXIT_THREAD;
-
-		//use semaphore to verify done reciving and start sending process
-
-
-		// print messege Q for debugging
-		//msg_q_printQ();
 		
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE)
@@ -424,13 +417,9 @@ static DWORD SendDataThread(void)
 			return ERR;
 		}
 
-
 		// if we have msg in Q
 		if (ret_val == TRUE)
 		{	
-			// for debugging - if we had messege in Q - print it
-			//printMessege(&curr_msg);
-
 			// send messege to state machine
 			ret_val = clientStateMachine(&curr_msg, &msg_out);
 			
@@ -446,19 +435,9 @@ static DWORD SendDataThread(void)
 			// in case we have a messege to send back to server
 			else if (ret_val == TRUE)
 			{
-				//wait_code = WaitForSingleObject(socket_semaphore, INFINITE);
-				//if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto EXIT_AND_RLS_SOCKET_SMPHR;
-
 				// encode meseege and send
-				ret_val = sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], msg_out.params[1], msg_out.params[2], msg_out.params[3], msg_out.params[4]);
-				
-				//release_res = ReleaseSemaphore(socket_semaphore, 1, &previous_count);
-				//if (release_res == FALSE)
-				//{
-				//	printf("Realese semaphore error!\n");
-				//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-				//	goto UPDATE_FLAG_AND_EXIT_THREAD;
-				//}
+				ret_val = sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], \
+					msg_out.params[1], msg_out.params[2], msg_out.params[3], msg_out.params[4]);
 
 				if (ret_val == ERR)
 				{
@@ -468,6 +447,13 @@ static DWORD SendDataThread(void)
 					goto UPDATE_FLAG_AND_EXIT_THREAD;
 				}
 
+				// if clients wants to quit, close send msg loop and start exit process
+				if (STRINGS_ARE_EQUAL(msg_out.type, CLIENT_DISCONNECT)) 
+				{
+					done = TRUE;
+					client_want_to_exit = TRUE;
+				}
+
 				// free messege out
 				freeMessege(&msg_out);
 			}
@@ -475,10 +461,10 @@ static DWORD SendDataThread(void)
 			// free curr_msg
 			freeMessege(&curr_msg);
 		}
-
-
 	}
-	
+
+	send_flag = TRUE;
+	shutdown(m_socket_data.socket, SD_SEND);
 	return TRUE;
 
 
@@ -508,9 +494,7 @@ EXIT_AND_RLS_SOCKET_SMPHR:
 	send_flag = TRUE;
 	return ERR;
 
-
 }
-
 
 // Thread controller - verify both thread are up and runnning
 static DWORD ThreadCtrl(void)
@@ -521,23 +505,30 @@ static DWORD ThreadCtrl(void)
 	extern int close_recv_brutally;
 	extern HANDLE hThread[NUM_OF_THREADS];
 	int ret_val = TRUE;
+	int local_wait = WAITING_TIME_MILLI_SEC;
 
 	while (TRUE)
 	{
 		if (send_flag)
 		{
-			Sleep(15000);
+			if (client_want_to_exit) local_wait = 100;
+			Sleep(local_wait);
 			if (close_recv_brutally)
+			{
 				TerminateThreadBrutally(RECV_THREAD_IDX);
+			}
 			else
+			{
 				TerminateThreadNicelly(RECV_THREAD_IDX);
+			}
 			TerminateThreadNicelly(SEND_THREAD_IDX);
 			return TRUE;
 		}	
 
-		if (recv_flag)
+		if (recv_flag && !send_flag)
 		{
-			Sleep(15000);
+			if (client_want_to_exit) local_wait = 100;
+			Sleep(local_wait);
 			if (close_send_brutally)
 				TerminateThreadBrutally(SEND_THREAD_IDX);
 			else
@@ -588,7 +579,7 @@ int createProgramSemaphores()
 //==========================================================================
 
 
-void MainClient(char *ip_addres, char *port_num_char, char *user_name)
+int MainClient(char *ip_addres, char *port_num_char, char *user_name)
 {
 	extern HANDLE hThread[];
 	DWORD wait_code;
@@ -627,7 +618,7 @@ void MainClient(char *ip_addres, char *port_num_char, char *user_name)
 	if (m_socket_data.socket == INVALID_SOCKET) {
 		printf("Error at socket(): %ld\n", WSAGetLastError());
 		WSACleanup();
-		return;
+		return ERR;
 	}
 
 	//For a client to communicate on a network, it must connect to a server.
@@ -645,6 +636,7 @@ void MainClient(char *ip_addres, char *port_num_char, char *user_name)
 
 	// Call the connect function, passing the created socket and the sockaddr_in structure as parameters. 
 	// Check for general errors.
+
 	tryToReconnect(&m_socket_data, &try_to_reconnect_answer);
 	if (try_to_reconnect_answer != CONNECTED) {
 		goto MAIN_CLEAN;
@@ -675,13 +667,20 @@ void MainClient(char *ip_addres, char *port_num_char, char *user_name)
 		TerminateThreadBrutally(CTRL_THREAD_IDX);
 	}
 	else
+	{
 		TerminateThreadNicelly(CTRL_THREAD_IDX);
+	}
 
 MAIN_CLEAN:
 	msg_q_freeQ();
 	closesocket(m_socket_data.socket);
 	WSACleanup();
+	if (connection_failure == TRUE)
+	{
+		printf("conection failure detected\n");
+		return RECONNECT;
+	}
 
-	return;
+	return EXIT_PROGRAM;
 }
 
