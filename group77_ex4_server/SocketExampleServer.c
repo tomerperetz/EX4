@@ -142,7 +142,7 @@ void MainServer(char port_num_char[5])
 	{
 
 		SOCKET AcceptSocket = accept( MainSocket, NULL, NULL );
-		
+		printf("starting..\n");
 		if ( AcceptSocket == INVALID_SOCKET && (force_exit_flag == FALSE))
 		{
 			printf( "Accepting connection with client failed, error %ld\n", WSAGetLastError() ) ; 
@@ -158,12 +158,13 @@ void MainServer(char port_num_char[5])
         printf( "Client Connected.\n" );
 
 		Ind = FindFirstUnusedThreadSlot();
-
+		printf("im here\n");
 		if ( Ind == NUM_OF_WORKER_THREADS ) //no slot is available
 		{ 
 			printf( "No slots available for client, dropping the connection.\n" );
 			closesocket( AcceptSocket ); //Closing the socket, dropping the connection.
 		} 
+		
 		else 	
 		{
 			ThreadInputs[Ind] = AcceptSocket; // shallow copy: don't close 
@@ -173,6 +174,7 @@ void MainServer(char port_num_char[5])
 			ThreadHandles[Ind] = CreateThread(NULL,0,( LPTHREAD_START_ROUTINE ) ServiceThread,
 														&( Ind ),0,NULL);
 		}
+		printf("done\n");
 		
     } // for ( Loop = 0; Loop < MAX_LOOPS; Loop++ )
 
@@ -290,7 +292,7 @@ static DWORD ServiceThread(int *threadIdx )
 	
 	
 	if (ret_val == ERR) {
-		/*TO DO*/
+		goto MAIN_CLEAN;
 	}
 	while ( !Done ) 
 	{		
@@ -299,14 +301,22 @@ static DWORD ServiceThread(int *threadIdx )
 
 		initMessege(&msg_struct, NULL, NULL, NULL, NULL, NULL, NULL);
 		ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
-
+		if (ret_val != TRUE || force_exit_flag) {
+			freeMessege(&msg_struct);
+			goto MAIN_CLEAN;
+		}
 
 		ret_val = decodeWrapper(&msg_struct, t_socket);
-		printMessege(&msg_struct);
+		if (ret_val != TRUE) {
+			printf("The connection with %s has been lost\n", player.name);
+			freeMessege(&msg_struct);
+			goto MAIN_CLEAN;
+		}
+
 
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_CPU)) {
 			ret_val = client_vs_cpu(t_socket, &player);
-			if (ret_val != TRUE) goto MAIN_CLEAN;
+			if (ret_val != TRUE) Done = TRUE;
 		}
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_DISCONNECT)) {
 			//send end messege
@@ -318,8 +328,8 @@ static DWORD ServiceThread(int *threadIdx )
 	}
 	
 MAIN_CLEAN:
+	close_brutally[*threadIdx] = FALSE;
 	shutdown(*t_socket, SD_SEND);
-	closesocket( *t_socket );
 	return 0;
 }
 
@@ -344,6 +354,8 @@ static DWORD exitProgramThread()
 		lowerCase(exit_str);
 		if (STRINGS_ARE_EQUAL(exit_str, "exit")) {
 			force_exit_flag = TRUE;
+			closesocket(MainSocket);
+			main_socket_is_closed = TRUE;
 			free(exit_str);
 			break;
 		}
@@ -363,21 +375,23 @@ static DWORD exitProgramThread()
 		if (closesocket(MainSocket) != 0) {
 			raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_10_SOCKET);
 		}
-		
 	}
 
 
 	for (int idx = 0; idx < NUM_OF_WORKER_THREADS; idx++) {
 		if (close_brutally[idx]) {
 			printf("Done waiting to socket #%d, Closing bruttaly...\n",idx);
-			if (TerminateThread(ThreadHandles[idx], THREAD_ERR) == 0)
-				raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-			if (closesocket(ThreadInputs[idx]) != 0) {
-				raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_10_SOCKET);
+			if (ThreadHandles[idx] != NULL) {
+				if (TerminateThread(ThreadHandles[idx], THREAD_ERR) == 0)
+					raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+			}
+			if (ThreadInputs[idx] != INVALID_SOCKET) {
+				if (closesocket(ThreadInputs[idx]) != 0) {
+					raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_10_SOCKET);
+				}
 			}
 		}
 	}
-
 	closeProgramNicely();
 	printf("All Resources has been closed\n");
 	printf("+++++++++++++++++++++++++++++++++++++++\n");

@@ -362,9 +362,6 @@ static DWORD RecvDataThread(void)
 		// free Messege struct. will be allocated again on next loop
 		freeMessege(&msg_struct);
 
-		// print msg Q for debugging
-		//msg_q_printQ();
-
 	}
 
 	return TRUE;
@@ -387,18 +384,6 @@ EXIT_AND_RLS_SMPHR:
 		goto UPDATE_FLAG_AND_EXIT_THREAD;
 	}
 	recv_flag = TRUE;
-	return ERR;
-
-
-EXIT_AND_RLS_SOCKET_SMPHR:
-	release_res = ReleaseSemaphore(terminate_semaphore, 1, &previous_count);
-	if (release_res == FALSE)
-	{
-		printf("Realese semaphore error!\n");
-		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-		goto UPDATE_FLAG_AND_EXIT_THREAD;
-	}
-	send_flag = TRUE;
 	return ERR;
 
 }
@@ -526,17 +511,6 @@ EXIT_AND_RLS_SMPHR:
 	send_flag = TRUE;
 	return ERR;
 
-EXIT_AND_RLS_SOCKET_SMPHR:
-	release_res = ReleaseSemaphore(terminate_semaphore, 1, &previous_count);
-	if (release_res == FALSE)
-	{
-		printf("Realese semaphore error!\n");
-		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-		goto UPDATE_FLAG_AND_EXIT_THREAD;
-	}
-	send_flag = TRUE;
-	return ERR;
-
 }
 
 // Thread controller - verify both thread are up and runnning
@@ -589,11 +563,12 @@ RELEASE_SEMAPHORE_CTRL:
 			{
 				printf("Error in releasing semaphore!\n");
 				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-				return;
+				return ERR;
 			}
 			return TRUE;
 		}
 	}
+	return TRUE;
 }
 
 //==========================================================================

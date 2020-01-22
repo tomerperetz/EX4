@@ -111,7 +111,6 @@ void getPlayerMoveIdx(char *player_move, int *idx)
 }
 
 int playGame(int player1Move, int player2Move) {
-	printf("%d %d\n", player1Move, player2Move);
 	switch (player1Move)
 	{
 	case (ROCK):
