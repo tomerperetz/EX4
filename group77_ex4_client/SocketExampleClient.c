@@ -26,12 +26,28 @@ int connection_failure = FALSE;
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 {
 	char *user_answer;
-
+	DWORD wait_code;
+	BOOL release_res;
 	BOOL done = FALSE;
+
 	do {
+		if (recv_flag) return;
 
 		printf("%s", menu);
+
+		wait_code = WaitForSingleObject(terminate_semaphore, INFINITE);
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto RELEASE_SEMAPHORE;
+
 		user_answer = getString(stdin);
+
+		release_res = ReleaseSemaphore(terminate_semaphore, 1, NULL);
+		if (release_res != TRUE)
+		{
+			printf("Error in releasing semaphore!\n");
+			raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+			return;
+		}
+		
 		if (user_answer == NULL) {
 			*answer = ERR;
 		}
@@ -79,6 +95,16 @@ void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 		}
 		free(user_answer);
 	} while (!done);
+
+RELEASE_SEMAPHORE:
+	if (!done)
+		release_res = ReleaseSemaphore(terminate_semaphore, 1, NULL);
+		if (release_res != TRUE)
+		{
+			printf("Error in releasing semaphore!\n");
+			raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+			return;
+		}
 }
 
 int tryToReconnect(Socket_info *socket_data, int *try_to_reconnect_answer)
@@ -253,7 +279,6 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 void TerminateThreadBrutally(int thread_idx)
 {
 	extern HANDLE hThread[NUM_OF_THREADS];
-	printf("TerminateThreadBrutally: %d\n", thread_idx);
 	TerminateThread(hThread[thread_idx], 0x555);
 	fflush(stdin);
 	if (CloseHandle(hThread[thread_idx]) == FALSE)
@@ -270,7 +295,6 @@ void TerminateThreadNicelly(int thread_idx)
 
 	//if (GetExitCodeThread(hThread[thread_idx], exit_code) == 0)
 	//	raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-	printf("TerminateThreadNicelly: %d\n", thread_idx);
 
 	if (CloseHandle(hThread[thread_idx]) == FALSE)
 	{
@@ -312,9 +336,6 @@ static DWORD RecvDataThread(void)
 	
 		if (ret_val != TRUE) goto UPDATE_FLAG_AND_EXIT_THREAD;
 		
-		// print msg for debugging
-		//printMessege(&msg_struct);
-		
 		// reciving semaphore - only recieve if not sending
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto EXIT_AND_RLS_SMPHR;
@@ -353,7 +374,6 @@ UPDATE_FLAG_AND_EXIT_THREAD:
 	close_recv_brutally = FALSE;
 	if ((ret_val == EXIT_PROGRAM) && (client_want_to_exit != TRUE))
 	{
-		printf("Connection to server on %s:%s has been lost.\n", m_socket_data.ip_addres, m_socket_data.port_num_char);
 		connection_failure = TRUE;
 	}
 	return ERR;
@@ -450,6 +470,14 @@ static DWORD SendDataThread(void)
 			// in case we have a messege to send back to server
 			else if (ret_val == TRUE)
 			{
+				if (recv_flag)
+				{
+					close_send_brutally = FALSE;
+					freeMessege(&msg_out);
+					freeMessege(&curr_msg);
+					return TRUE;
+				}
+
 				// encode meseege and send
 				ret_val = sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], \
 					msg_out.params[1], msg_out.params[2], msg_out.params[3], msg_out.params[4]);
@@ -521,6 +549,8 @@ static DWORD ThreadCtrl(void)
 	extern HANDLE hThread[NUM_OF_THREADS];
 	int ret_val = TRUE;
 	int local_wait = WAITING_TIME_MILLI_SEC;
+	DWORD wait_code;
+	BOOL release_res;
 
 	while (TRUE)
 	{
@@ -542,8 +572,9 @@ static DWORD ThreadCtrl(void)
 		}	
 
 		if (recv_flag && !send_flag)
-		{
-			if (client_want_to_exit) local_wait = 100;
+		{	
+			wait_code = WaitForSingleObject(terminate_semaphore, INFINITE);
+			if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto RELEASE_SEMAPHORE_CTRL;
 			shutdown(m_socket_data.socket, SD_SEND);
 			Sleep(local_wait);
 			if (close_send_brutally)
@@ -551,6 +582,15 @@ static DWORD ThreadCtrl(void)
 			else
 				TerminateThreadNicelly(SEND_THREAD_IDX);
 			TerminateThreadNicelly(RECV_THREAD_IDX);
+
+RELEASE_SEMAPHORE_CTRL:
+			release_res = ReleaseSemaphore(terminate_semaphore, 1, NULL);
+			if (release_res != TRUE)
+			{
+				printf("Error in releasing semaphore!\n");
+				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+				return;
+			}
 			return TRUE;
 		}
 	}
@@ -593,7 +633,6 @@ int createProgramSemaphores()
 //==========================================================================
 //					Main
 //==========================================================================
-
 
 int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to_reconnect_answer)
 {
@@ -684,9 +723,8 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 	}
 
 	wait_code = WaitForSingleObject(hThread[CTRL_THREAD_IDX], INFINITE);
-	printf("got wait code: %d\n", wait_code);
 	ret_val = checkWaitCodeStatus(wait_code, FALSE);
-	printf("got ret val: %d\n", ret_val);
+
 
 	if (ret_val == ERR)
 	{
@@ -715,10 +753,11 @@ MAIN_CLEAN:
 
 	if (connection_failure == TRUE)
 	{
-		printf("Connection failure detected\n");
+		printf("Connection to server on %s:%s has been lost.\n", m_socket_data.ip_addres, m_socket_data.port_num_char);
 		connection_failure = FALSE;
 		return RECONNECT;
 	}
+
 	return EXIT_PROGRAM;
 }
 

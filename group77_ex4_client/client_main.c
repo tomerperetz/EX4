@@ -40,10 +40,8 @@ int main(int argc, char *argv[])
 	while (exit_code == RECONNECT)
 	{
 		i++;
-		printf("iter: %d\n", i);
 		exit_code = MainClient(argv[1], argv[2], argv[3], try_to_reconnect);
 		try_to_reconnect = TRUE;
-		printf("exit code: %d\n", exit_code);
 	}		
 	return 0;
 }

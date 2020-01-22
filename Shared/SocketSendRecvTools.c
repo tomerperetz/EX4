@@ -596,8 +596,6 @@ void msg_q_freeQ()
 	extern msg_fifo *msg_q;
 	msg_q_item *curr = msg_q->head;
 
-
-	printf("releasing Q\n");
 	// if line is empty
 	if (curr == NULL)
 		return;
