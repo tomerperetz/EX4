@@ -91,7 +91,6 @@ MAIN_CLEANUP2:
 	}
 
 	freeMessege(&client_first_msg);
-	printf("segev has left the building\n");
 	return ret_val;
 }
 

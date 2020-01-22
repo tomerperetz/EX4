@@ -11,7 +11,6 @@
 #define CTRL_THREAD_IDX 2
 
 // globals --------------------------------------------------------------------->
-
 Socket_info m_socket_data;
 static HANDLE msg_q_semaphore;
 static HANDLE socket_semaphore;
@@ -20,7 +19,8 @@ int send_flag = FALSE;
 int recv_flag = FALSE;
 int close_send_brutally = TRUE;
 int close_recv_brutally = TRUE;
-
+int client_want_to_exit = FALSE;
+int connection_failure = FALSE;
 
 
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
@@ -293,22 +293,11 @@ static DWORD RecvDataThread(void)
 		ret_val = initMessege(&msg_struct, NULL, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val == ERR) goto UPDATE_FLAG_AND_EXIT_THREAD;
 
-
-		//wait_code = WaitForSingleObject(socket_semaphore, INFINITE);
-		//if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto EXIT_AND_RLS_SOCKET_SMPHR;
-		
 		// decode messege recieved from server and load it to msg_struct
 		ret_val = decodeWrapper(&msg_struct, &m_socket_data.socket);
-
-		//release_res = ReleaseSemaphore(socket_semaphore, 1, &previous_count);
-		//if (release_res == FALSE)
-		//{
-		//	printf("Realese semaphore error!\n");
-		//	raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-		//	goto UPDATE_FLAG_AND_EXIT_THREAD;
-		//}
-
-		if (ret_val == ERR) goto EXIT_AND_RLS_SMPHR;
+	
+		if (ret_val != TRUE) goto UPDATE_FLAG_AND_EXIT_THREAD;
+		
 		// print msg for debugging
 		//printMessege(&msg_struct);
 		
@@ -347,6 +336,12 @@ static DWORD RecvDataThread(void)
 
 UPDATE_FLAG_AND_EXIT_THREAD:
 	recv_flag = TRUE;
+	printf("im here\n");
+	if ((ret_val == EXIT_PROGRAM) && (client_want_to_exit != TRUE))
+	{
+		printf("Connection to server on %s:%s has been lost.", m_socket_data.ip_addres, m_socket_data.port_num_char);
+		connection_failure = TRUE;
+	}
 	return ERR;
 
 EXIT_AND_RLS_SMPHR:
@@ -418,7 +413,6 @@ static DWORD SendDataThread(void)
 
 		// pop first messege in Q
 		ret_val = msg_q_pop(&curr_msg);
-
 
 		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
 		if (release_res != TRUE)

@@ -26,8 +26,7 @@ Last updated by Amnon Drory, Winter 2011.
 #define MAX_LOOPS 3
 #define SEND_STR_SIZE 35
 
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-
+// Globals ------------------------------------------------------------------>
 HANDLE ThreadHandles[NUM_OF_WORKER_THREADS];
 SOCKET ThreadInputs[NUM_OF_WORKER_THREADS];
 SOCKET MainSocket = INVALID_SOCKET;
@@ -36,15 +35,17 @@ int force_exit_flag = FALSE;
 int main_socket_is_closed = FALSE;
 int close_brutally[NUM_OF_WORKER_THREADS];
 int close_brutally_main = TRUE;
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-
+// Local functions declerations ------------------------------------------>
 static int FindFirstUnusedThreadSlot();
 static void closeProgramNicely();
 static DWORD ServiceThread(int *threadIdx);
 static DWORD exitProgramThread();
 void closeControlersThreadsAndResources(HANDLE *exit_program_handle);
 int createServerSemaphores();
+
+// Functions -------------------------------------------------------------->
+
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 void MainServer(char port_num_char[5])
@@ -304,7 +305,8 @@ static DWORD ServiceThread(int *threadIdx )
 		printMessege(&msg_struct);
 
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_CPU)) {
-			client_vs_cpu(t_socket, &player);
+			ret_val = client_vs_cpu(t_socket, &player);
+			if (ret_val != TRUE) goto MAIN_CLEAN;
 		}
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_DISCONNECT)) {
 			//send end messege
@@ -316,7 +318,7 @@ static DWORD ServiceThread(int *threadIdx )
 	}
 	
 MAIN_CLEAN:
-	
+	shutdown(*t_socket, SD_SEND);
 	closesocket( *t_socket );
 	return 0;
 }
@@ -346,6 +348,8 @@ static DWORD exitProgramThread()
 	printf("+++++++++++++++++++++++++++++++++++++++\n");
 	printf("Closing All Resources And Exiting...\n");
 	printf("Waiting For All Resources To Close...\n");
+	if (ThreadInputs[0] != INVALID_SOCKET) shutdown(ThreadInputs[0], SD_SEND);
+	if (ThreadInputs[1] != INVALID_SOCKET) shutdown(ThreadInputs[1], SD_SEND);
 	Sleep(WAITING_TIME_MILLI_SEC);
 	if (close_brutally_main) {
 		// Usig Semaphore here is Optional.
