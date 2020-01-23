@@ -21,6 +21,9 @@ int close_send_brutally = TRUE;
 int close_recv_brutally = TRUE;
 int client_want_to_exit = FALSE;
 int connection_failure = FALSE;
+int connection_failure_msg = TRUE;
+int program_closed_nicely = TRUE;
+
 
 
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
@@ -273,7 +276,31 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 	return TRUE;
 }
 
+int checkServerAnswer(Messege *msg)
+{
+	int ret_val = CONNECTED;
+	if (STRINGS_ARE_EQUAL(msg->type, SERVER_APPROVED))
+	{
+		printf(SERVER_APPROVED_MSG);
+		ret_val = CONNECTED;
+	}
+	else if (STRINGS_ARE_EQUAL(msg->type, SERVER_DENIED)) {
+		printf(SERVER_DENIED_MSG_ARGS, msg->params[0], msg->params[1], msg->params[2]);
+		connection_failure = TRUE;
+		connection_failure_msg = FALSE;
+		ret_val = EXIT_PROGRAM;
+	}
+	else
+	{
+		printf("The Server sent illeagal messege type: %s\n", msg->type);
+		connection_failure = TRUE;
+		connection_failure_msg = FALSE;
+		ret_val = ERR;
+	}
+	freeMessege(msg);
+	return ret_val;
 
+}
 //==========================================================================
 //					Threads
 //==========================================================================
@@ -363,9 +390,6 @@ static DWORD RecvDataThread(void)
 		// free Messege struct. will be allocated again on next loop
 		freeMessege(&msg_struct);
 
-		// print msg Q for debugging
-		//msg_q_printQ();
-
 	}
 
 	return TRUE;
@@ -388,18 +412,6 @@ EXIT_AND_RLS_SMPHR:
 		goto UPDATE_FLAG_AND_EXIT_THREAD;
 	}
 	recv_flag = TRUE;
-	return ERR;
-
-
-EXIT_AND_RLS_SOCKET_SMPHR:
-	release_res = ReleaseSemaphore(terminate_semaphore, 1, &previous_count);
-	if (release_res == FALSE)
-	{
-		printf("Realese semaphore error!\n");
-		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-		goto UPDATE_FLAG_AND_EXIT_THREAD;
-	}
-	send_flag = TRUE;
 	return ERR;
 
 }
@@ -527,17 +539,6 @@ EXIT_AND_RLS_SMPHR:
 	send_flag = TRUE;
 	return ERR;
 
-EXIT_AND_RLS_SOCKET_SMPHR:
-	release_res = ReleaseSemaphore(terminate_semaphore, 1, &previous_count);
-	if (release_res == FALSE)
-	{
-		printf("Realese semaphore error!\n");
-		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-		goto UPDATE_FLAG_AND_EXIT_THREAD;
-	}
-	send_flag = TRUE;
-	return ERR;
-
 }
 
 // Thread controller - verify both thread are up and runnning
@@ -590,11 +591,12 @@ RELEASE_SEMAPHORE_CTRL:
 			{
 				printf("Error in releasing semaphore!\n");
 				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
-				return;
+				return ERR;
 			}
 			return TRUE;
 		}
 	}
+	return TRUE;
 }
 
 //==========================================================================
@@ -641,7 +643,7 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 	extern int close_recv_brutally;
 	extern int send_flag;
 	extern int recv_flag;
-	
+	Messege approval_msg;
 	DWORD wait_code;
 	LPDWORD exit_code_recv = 0;
 	LPDWORD exit_code_send = 0;
@@ -659,7 +661,7 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 	// init messege queue for reciving msgs
 	extern msg_fifo *msg_q;
 	msg_q_init();
-
+	initMessege(&approval_msg, NULL, NULL, NULL, NULL, NULL, NULL);
 	//Call WSAStartup and check for errors.
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != NO_ERROR)
@@ -705,13 +707,20 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 
 	// Send client request messege to server
 	ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", user_name, NULL, NULL, NULL, NULL);
-	if (ret_val == ERR)
+	if (ret_val != TRUE)
 	{
-		printf("Client state machine error\n");
-		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		printf("Client request messege didn't sent due to connection error\n");
+		connection_failure = TRUE;
+		goto MAIN_CLEAN;
+	}
+	ret_val = decodeWrapper(&approval_msg, &m_socket_data.socket);
+	if (ret_val != TRUE)
+	{
+		connection_failure = TRUE;
 		goto MAIN_CLEAN;
 	}
 
+	if (checkServerAnswer(&approval_msg) != CONNECTED) goto MAIN_CLEAN;
 
 	// create threads
 	hThread[SEND_THREAD_IDX] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SendDataThread, NULL, 0, NULL);

@@ -227,7 +227,6 @@ TransferResult_t SendBuffer( const char* Buffer, int BytesToSend, SOCKET sd )
 		if ( BytesTransferred == SOCKET_ERROR ) 
 		{
 			printf("send() failed, error %d\n", WSAGetLastError() );
-			raiseError(15, __FILE__, __func__, __LINE__, "\n");
 			return TRNS_FAILED;
 		}
 		

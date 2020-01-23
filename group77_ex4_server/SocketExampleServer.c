@@ -47,6 +47,8 @@ static DWORD exitProgramThread();
 void closeControlersThreadsAndResources(HANDLE *exit_program_handle);
 int createServerSemaphores();
 int createServerMutexes();
+void debug(int line);
+void denyClient(SOCKET socket, char *port_num_char);
 // Functions -------------------------------------------------------------->
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
@@ -146,7 +148,6 @@ void MainServer(char port_num_char[5])
 	{
 
 		SOCKET AcceptSocket = accept( MainSocket, NULL, NULL );
-		
 		if ( AcceptSocket == INVALID_SOCKET && (force_exit_flag == FALSE))
 		{
 			printf( "Accepting connection with client failed, error %ld\n", WSAGetLastError() ) ; 
@@ -162,12 +163,13 @@ void MainServer(char port_num_char[5])
         printf( "Client Connected.\n" );
 
 		Ind = FindFirstUnusedThreadSlot();
-
 		if ( Ind == NUM_OF_WORKER_THREADS ) //no slot is available
 		{ 
-			printf( "No slots available for client, dropping the connection.\n" );
-			closesocket( AcceptSocket ); //Closing the socket, dropping the connection.
+			denyClient(AcceptSocket, port_num_char);
+			shutdown(AcceptSocket, SD_SEND);
+			closesocket(AcceptSocket); //Closing the socket, dropping the connection.
 		} 
+		
 		else 	
 		{
 			ThreadInputs[Ind] = AcceptSocket; // shallow copy: don't close 
@@ -239,13 +241,8 @@ static void closeProgramNicely()
 		if ( ThreadHandles[Ind] != NULL && close_brutally[Ind] == FALSE)
 		{
 			// poll to check if thread finished running:
-			printf("Waiting.....\n");
 			wait_code = WaitForSingleObject(ThreadHandles[Ind], INFINITE);
 			ret_val = checkWaitCodeStatus(wait_code, TRUE);
-			if (GetExitCodeThread(ThreadHandles[Ind], lpExitCode) == 0) {
-				printf("Failed to get exitcode, error %ld. Ending program.\n", GetLastError());
-				raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-			}
 			if (ret_val == TRUE)
 				CloseHandle(ThreadHandles[Ind]);
 			else
@@ -261,6 +258,10 @@ static void closeProgramNicely()
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
 //Service thread is the thread that opens for each successful client connection and "talks" to the client.
+void debug(int line) {
+	printf("im in line %d\n", line);
+}
+
 static DWORD ServiceThread(int *threadIdx ) 
 {
 	int user_idx_local = *threadIdx;
@@ -295,25 +296,34 @@ static DWORD ServiceThread(int *threadIdx )
 	
 	initUser(&usr_arr[user_idx_local], &player, STATUS_INIT, user_idx_local, TRUE);
 	
+
 	if (ret_val == ERR) {
-		/*TO DO*/
+		goto MAIN_CLEAN;
 	}
 	while ( !Done ) 
 	{		
 		
 		Messege msg_struct;
-
+		
 		initMessege(&msg_struct, NULL, NULL, NULL, NULL, NULL, NULL);
 		ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
-
-
+		if (ret_val != TRUE || force_exit_flag) {
+			freeMessege(&msg_struct);
+			goto MAIN_CLEAN;
+		}
+		
 		ret_val = decodeWrapper(&msg_struct, t_socket);
-		printMessege(&msg_struct);
+		if (ret_val != TRUE) {
+			printf("The connection with %s has been lost\n", player.name);
+			freeMessege(&msg_struct);
+			goto MAIN_CLEAN;
+		}
 
+		
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_CPU)) {
 			usr_arr[user_idx_local].status = STATUS_CLIENT_CPU;
 			ret_val = client_vs_cpu(t_socket, &player);
-			if (ret_val != TRUE) goto MAIN_CLEAN;
+			if (ret_val != TRUE) Done = TRUE;
 		}
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_DISCONNECT)) {
 			//send end messege
@@ -335,9 +345,10 @@ static DWORD ServiceThread(int *threadIdx )
 	}
 	
 MAIN_CLEAN:
+
 	initUser(&usr_arr[user_idx_local], NULL, STATUS_INIT, ERR ,FALSE);
+	close_brutally[*threadIdx] = FALSE;
 	shutdown(*t_socket, SD_SEND);
-	closesocket( *t_socket );
 	return 0;
 }
 
@@ -362,6 +373,8 @@ static DWORD exitProgramThread()
 		lowerCase(exit_str);
 		if (STRINGS_ARE_EQUAL(exit_str, "exit")) {
 			force_exit_flag = TRUE;
+			closesocket(MainSocket);
+			main_socket_is_closed = TRUE;
 			free(exit_str);
 			break;
 		}
@@ -381,21 +394,23 @@ static DWORD exitProgramThread()
 		if (closesocket(MainSocket) != 0) {
 			raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_10_SOCKET);
 		}
-		
 	}
 
 
 	for (int idx = 0; idx < NUM_OF_WORKER_THREADS; idx++) {
 		if (close_brutally[idx]) {
 			printf("Done waiting to socket #%d, Closing bruttaly...\n",idx);
-			if (TerminateThread(ThreadHandles[idx], THREAD_ERR) == 0)
-				raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-			if (closesocket(ThreadInputs[idx]) != 0) {
-				raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_10_SOCKET);
+			if (ThreadHandles[idx] != NULL) {
+				if (TerminateThread(ThreadHandles[idx], THREAD_ERR) == 0)
+					raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+			}
+			if (ThreadInputs[idx] != INVALID_SOCKET) {
+				if (closesocket(ThreadInputs[idx]) != 0) {
+					raiseError(10, __FILE__, __func__, __LINE__, ERROR_ID_10_SOCKET);
+				}
 			}
 		}
 	}
-
 	closeProgramNicely();
 	printf("All Resources has been closed\n");
 	printf("+++++++++++++++++++++++++++++++++++++++\n");
@@ -480,4 +495,19 @@ Main_cleanup:
 		raiseError(6, __FILE__, __func__, __LINE__, "Mutex creation failed\n");
 	}
 	return retVal;
+}
+
+void denyClient(SOCKET socket, char *port_num_char)
+{
+	Messege req_msg;
+	int ret_val = TRUE;
+	initMessege(&req_msg, NULL, NULL, NULL, NULL, NULL, NULL);
+
+	ret_val = decodeWrapper(&req_msg, &socket);
+	if (ret_val != TRUE) return;
+	ret_val = sendMessegeWrapper(socket, SERVER_DENIED, "No slots available, Server is dropping the connection...",
+		SERVER_ADDRESS_STR, port_num_char, NULL, NULL);
+	if (ret_val != TRUE) return;
+	printf("No slots available for client, dropping the connection.\n");
+	freeMessege(&req_msg);
 }
