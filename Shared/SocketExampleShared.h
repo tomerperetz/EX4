@@ -13,7 +13,7 @@
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 
-#define SERVER_ADDRESS_STR "127.0.0.1"
+#define SERVER_ADDRESS_STR "192.168.1.6"
 #define IP_MAX_LEN 20
 #define PORT_MAX_LEN 33
 #define WAITING_TIME_MILLI_SEC 1500
