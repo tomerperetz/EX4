@@ -23,6 +23,7 @@ int client_want_to_exit = FALSE;
 int connection_failure = FALSE;
 int connection_failure_msg = TRUE;
 int program_closed_nicely = TRUE;
+BOOL waiting_for_user_answer = FALSE;
 
 
 
@@ -40,9 +41,9 @@ void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 
 		wait_code = WaitForSingleObject(terminate_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto RELEASE_SEMAPHORE;
-
+		waiting_for_user_answer = TRUE;
 		user_answer = getString(stdin);
-
+		waiting_for_user_answer = FALSE;
 		release_res = ReleaseSemaphore(terminate_semaphore, 1, NULL);
 		if (release_res != TRUE)
 		{
@@ -118,7 +119,6 @@ int tryToReconnect(Socket_info *socket_data, int *try_to_reconnect_answer)
 		printMenuAndGetAnswer(RECONNECT_MENU, try_to_reconnect_answer, 2);
 		//*try_to_reconnect_answer = RECONNECT;
 		if (*try_to_reconnect_answer == EXIT_PROGRAM || *try_to_reconnect_answer == ERR) {
-			WSACleanup();
 			return EXIT_PROGRAM;
 		}
 	}
@@ -128,14 +128,12 @@ int tryToReconnect(Socket_info *socket_data, int *try_to_reconnect_answer)
 			printMenuAndGetAnswer(RECONNECT_MENU, try_to_reconnect_answer, 2);
 			//*try_to_reconnect_answer = RECONNECT;
 			if (*try_to_reconnect_answer == EXIT_PROGRAM || *try_to_reconnect_answer == ERR) {
-				WSACleanup();
 				return EXIT_PROGRAM;
 			}
 		}
 		else
 			*try_to_reconnect_answer = CONNECTED;
 	} while (*try_to_reconnect_answer == RECONNECT);
-	printf("Connected to server on %s:%s\n", socket_data->ip_addres, socket_data->port_num_char);
 	return CONNECTED;
 }
 
@@ -160,35 +158,12 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 			break;
 		case 4:
 			initMessege(msg_out, CLIENT_DISCONNECT, NULL, NULL, NULL, NULL, NULL);
+			client_want_to_exit = TRUE;
 			break;
 		}
 
 		return TRUE;
 	}
-
-	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_APPROVED))
-	{
-		printf(SERVER_APPROVED_MSG);
-		return NO_NEED_TO_REPLY;
-	}
-
-	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_DENIED))
-	{
-		printf(SERVER_DENIED_MSG_ARGS, msg_in->params[0], msg_in->params[1], msg_in->params[2]);
-		printMenuAndGetAnswer(SERVER_DENIED_MSG_MENU, &user_answer, 2);
-		switch (user_answer)
-		{
-		case 1:
-			printf("try to reconnect\n");
-			return NO_NEED_TO_REPLY;
-		case 2:
-			printf("Exiting program..\n");
-			return NO_NEED_TO_REPLY;
-		}
-
-		return TRUE;
-	}
-
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_INVITE))
 	{
 		printf(SERVER_INVITE_MSG, msg_in->params[0]);
@@ -339,6 +314,7 @@ static DWORD RecvDataThread(void)
 	extern int close_send_brutally;
 
 	int ret_val = TRUE;
+	int recv_ret_val = TRUE;
 	int wait_code = TRUE;
 	int release_res = TRUE;
 	int release_code = TRUE;
@@ -359,9 +335,9 @@ static DWORD RecvDataThread(void)
 		if (ret_val == ERR) goto UPDATE_FLAG_AND_EXIT_THREAD;
 
 		// decode messege recieved from server and load it to msg_struct
-		ret_val = decodeWrapper(&msg_struct, &m_socket_data.socket);
+		recv_ret_val = decodeWrapper(&msg_struct, &m_socket_data.socket);
 	
-		if (ret_val != TRUE) goto UPDATE_FLAG_AND_EXIT_THREAD;
+		if (recv_ret_val != TRUE) goto UPDATE_FLAG_AND_EXIT_THREAD;
 		
 		// reciving semaphore - only recieve if not sending
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
@@ -394,12 +370,16 @@ static DWORD RecvDataThread(void)
 	return TRUE;
 
 UPDATE_FLAG_AND_EXIT_THREAD:
-	recv_flag = TRUE;
 	close_recv_brutally = FALSE;
-	if ((ret_val == EXIT_PROGRAM) && (client_want_to_exit != TRUE))
-	{
+	if ((recv_ret_val != TRUE) && (client_want_to_exit != TRUE)) {
 		connection_failure = TRUE;
 	}
+	else {
+		if (!client_want_to_exit)
+			printf("Fatal error occured, aborting...\n"); 
+	}
+	if (waiting_for_user_answer) printf("Please press any key to continue...\n");
+	recv_flag = TRUE;
 	return ERR;
 
 EXIT_AND_RLS_SMPHR:
@@ -410,6 +390,7 @@ EXIT_AND_RLS_SMPHR:
 		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
 		goto UPDATE_FLAG_AND_EXIT_THREAD;
 	}
+	printf("Fatal error occured, aborting...\n");
 	recv_flag = TRUE;
 	return ERR;
 
@@ -423,6 +404,7 @@ static DWORD SendDataThread(void)
 	extern int close_send_brutally;
 	BOOL done = FALSE;
 	int ret_val = TRUE;
+	int send_ret_val = TRUE;
 	int wait_code = TRUE;
 	int release_res = TRUE;
 	LONG previous_count;
@@ -491,10 +473,10 @@ static DWORD SendDataThread(void)
 				}
 
 				// encode meseege and send
-				ret_val = sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], \
+				send_ret_val = sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], \
 					msg_out.params[1], msg_out.params[2], msg_out.params[3], msg_out.params[4]);
 
-				if (ret_val == ERR)
+				if (send_ret_val != TRUE)
 				{
 					// free curr_msg
 					freeMessege(&curr_msg);
@@ -524,6 +506,11 @@ static DWORD SendDataThread(void)
 
 
 UPDATE_FLAG_AND_EXIT_THREAD:
+	if (send_ret_val != TRUE) connection_failure = TRUE;
+	else {
+		printf("Fatal error occured, aborting...\n");
+	}
+	shutdown(m_socket_data.socket, SD_SEND);
 	send_flag = TRUE;
 	return ERR;
 
@@ -535,7 +522,9 @@ EXIT_AND_RLS_SMPHR:
 		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
 		goto UPDATE_FLAG_AND_EXIT_THREAD;
 	}
+	printf("Fatal error occured, aborting...\n");
 	send_flag = TRUE;
+	shutdown(m_socket_data.socket, SD_SEND);
 	return ERR;
 
 }
@@ -721,6 +710,7 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 
 	if (checkServerAnswer(&approval_msg) != CONNECTED) goto MAIN_CLEAN;
 
+	printf("Connected to server on %s:%s\n", m_socket_data.ip_addres, m_socket_data.port_num_char);
 	// create threads
 	hThread[SEND_THREAD_IDX] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SendDataThread, NULL, 0, NULL);
 	hThread[RECV_THREAD_IDX] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RecvDataThread, NULL, 0, NULL);
