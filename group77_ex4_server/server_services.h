@@ -19,3 +19,4 @@ int client_vs_client(SOCKET *socket, User *usr);
 
 void initUser(User *new_user, Player *p_player_data, int status, int idx, BOOL online);
 
+int seekAndDestroy();

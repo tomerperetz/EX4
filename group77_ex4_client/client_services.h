@@ -5,7 +5,7 @@
 // Hardcoded messages
 
 #define SERVER_INVITE "SERVER_INVITE"
-#define SERVER_INVITE_MSG "%s"
+#define SERVER_INVITE_MSG "%s\n"
 
 
 #define SERVER_NO_OPPONENTS "SERVER_NO_OPPONENTS"
@@ -68,5 +68,4 @@
 #define NO_NEED_TO_REPLY -100
 
 // Declerations -------------------------------------------------------------------->
-
 

@@ -31,7 +31,13 @@ int main(int argc, char *argv[])
 	// Checks whether the given arguments are valid  
 	if (ensureArgs(argc, SERVER_EXPECTED_ARGC, argv) != TRUE) {
 		raiseError(1, __FILE__, __func__, __LINE__, ERROR_ID_1_ARGS);
-		return TRUE;
+		return 0;
+	}
+
+	if (!seekAndDestroy())
+	{
+		printf("Please delete gameSession.txt file and restart program.\n");
+		return 0;
 	}
 
 	MainServer(argv[1]);

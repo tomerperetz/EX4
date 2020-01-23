@@ -155,7 +155,7 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 	char opponent_move[MAX_MOVE_SIZE];
 	int player_move_idx = ERR;
 	int opponent_move_idx = ERR;
-	int game_results;
+	int game_results=ERR;
 	char winner_name[NAME_MAX_LEN];
 
 	// File access mutex
@@ -286,7 +286,7 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 
 Realese_And_Quit:
 
-	return game_results;
+	return TRUE;
 }
 
 int client_vs_client(SOCKET *socket, User *usr)
@@ -334,7 +334,12 @@ int client_vs_client(SOCKET *socket, User *usr)
 			goto MAIN_CLEANUP;
 		}
 		// Game
-		game_results = playVsGame(client_reply.params[0], usr->idx, oponnent_idx, socket);
+		ret_val = playVsGame(client_reply.params[0], usr->idx, oponnent_idx, socket);
+		if (ret_val != TRUE)
+		{
+			freeMessege(&client_reply);
+			goto MAIN_CLEANUP;
+		}
 
 		ret_val = sendMessegeWrapper(*socket, SERVER_GAME_OVER_MENU, CLIENT_CPU, NULL, NULL, NULL, NULL);
 		if (ret_val != TRUE) 
@@ -425,4 +430,12 @@ void initUser(User *new_user, Player *p_player_data, int status, int idx, BOOL o
 	new_user->online = online;
 	new_user->idx = idx;
 	return;
+}
+ 
+int seekAndDestroy()
+{
+	int ret = TRUE;
+	if (gameSessionFileExist())
+		ret = deleteGameSessionFile();
+	return ret;
 }
