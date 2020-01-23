@@ -44,6 +44,7 @@ static DWORD exitProgramThread();
 void closeControlersThreadsAndResources(HANDLE *exit_program_handle);
 int createServerSemaphores();
 void debug(int line);
+void denyClient(SOCKET socket, char *port_num_char);
 // Functions -------------------------------------------------------------->
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
@@ -159,8 +160,9 @@ void MainServer(char port_num_char[5])
 		Ind = FindFirstUnusedThreadSlot();
 		if ( Ind == NUM_OF_WORKER_THREADS ) //no slot is available
 		{ 
-			printf( "No slots available for client, dropping the connection.\n" );
-			closesocket( AcceptSocket ); //Closing the socket, dropping the connection.
+			denyClient(AcceptSocket, port_num_char);
+			shutdown(AcceptSocket, SD_SEND);
+			closesocket(AcceptSocket); //Closing the socket, dropping the connection.
 		} 
 		
 		else 	
@@ -234,7 +236,6 @@ static void closeProgramNicely()
 		if ( ThreadHandles[Ind] != NULL && close_brutally[Ind] == FALSE)
 		{
 			// poll to check if thread finished running:
-			printf("Waiting.....\n");
 			wait_code = WaitForSingleObject(ThreadHandles[Ind], INFINITE);
 			ret_val = checkWaitCodeStatus(wait_code, TRUE);
 			if (ret_val == TRUE)
@@ -294,14 +295,14 @@ static DWORD ServiceThread(int *threadIdx )
 	{		
 		
 		Messege msg_struct;
-		debug(304);
+		
 		initMessege(&msg_struct, NULL, NULL, NULL, NULL, NULL, NULL);
 		ret_val = sendMessegeWrapper(*t_socket, SERVER_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val != TRUE || force_exit_flag) {
 			freeMessege(&msg_struct);
 			goto MAIN_CLEAN;
 		}
-		debug(311);
+		
 		ret_val = decodeWrapper(&msg_struct, t_socket);
 		if (ret_val != TRUE) {
 			printf("The connection with %s has been lost\n", player.name);
@@ -309,7 +310,7 @@ static DWORD ServiceThread(int *threadIdx )
 			goto MAIN_CLEAN;
 		}
 
-		debug(319);
+		
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_CPU)) {
 			ret_val = client_vs_cpu(t_socket, &player);
 			if (ret_val != TRUE) Done = TRUE;
@@ -432,4 +433,19 @@ int createServerSemaphores()
 		ret_val = ERR;
 	}
 	return ret_val;
+}
+
+void denyClient(SOCKET socket, char *port_num_char)
+{
+	Messege req_msg;
+	int ret_val = TRUE;
+	initMessege(&req_msg, NULL, NULL, NULL, NULL, NULL, NULL);
+
+	ret_val = decodeWrapper(&req_msg, &socket);
+	if (ret_val != TRUE) return;
+	ret_val = sendMessegeWrapper(socket, SERVER_DENIED, "No slots available, Server is dropping the connection...",
+		SERVER_ADDRESS_STR, port_num_char, NULL, NULL);
+	if (ret_val != TRUE) return;
+	printf("No slots available for client, dropping the connection.\n");
+	freeMessege(&req_msg);
 }

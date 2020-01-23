@@ -29,7 +29,7 @@
 #define SERVER_APPROVED_MSG  "Connection to server approved\n"
 
 #define SERVER_DENIED "SERVER_DENIED"
-#define SERVER_DENIED_MSG_ARGS "Server on %s:%s denied the connection request, %s.\n"
+#define SERVER_DENIED_MSG_ARGS "%s\nServer on %s:%s denied the connection request.\n"
 #define SERVER_DENIED_MSG_MENU "Choose what to do next:\n"\
 											"1. Try to reconnect\n"\
 											"2. Exit\n"

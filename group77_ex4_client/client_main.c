@@ -35,11 +35,9 @@ int main(int argc, char *argv[])
 		return TRUE;
 	}
 	//runClientTest();
-	int i = 0;
 	int try_to_reconnect = FALSE;
 	while (exit_code == RECONNECT)
 	{
-		i++;
 		exit_code = MainClient(argv[1], argv[2], argv[3], try_to_reconnect);
 		try_to_reconnect = TRUE;
 	}		
