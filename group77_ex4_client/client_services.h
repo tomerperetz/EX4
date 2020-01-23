@@ -9,7 +9,7 @@
 
 
 #define SERVER_NO_OPPONENTS "SERVER_NO_OPPONENTS"
-#define SERVER_NO_OPPONENTS_MSG "Couldn't find and opponent. Please try again later.\n"
+#define SERVER_NO_OPPONENTS_MSG "Couldn't find an opponent. Please try again later.\n"
 
 #define SERVER_LEADERBOARD "SERVER_LEADERBOARD"
 

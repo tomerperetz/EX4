@@ -224,6 +224,7 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 			printf(SERVER_GAME_RESULTS_DRAW_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2]);
 		else
 			printf(SERVER_GAME_RESULTS_MSG, msg_in->params[0], msg_in->params[1], msg_in->params[2], msg_in->params[3]);
+
 		return NO_NEED_TO_REPLY;
 	}
 

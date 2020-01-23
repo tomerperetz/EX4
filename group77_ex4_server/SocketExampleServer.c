@@ -20,9 +20,9 @@ Last updated by Amnon Drory, Winter 2011.
 #include "server_services.h"
 
 
-/*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
-
+// Defines ------------------------------------------------------------------>
 #define NUM_OF_WORKER_THREADS 2
+#define MAX_USERS 2
 #define MAX_LOOPS 3
 #define SEND_STR_SIZE 35
 
@@ -35,6 +35,9 @@ int force_exit_flag = FALSE;
 int main_socket_is_closed = FALSE;
 int close_brutally[NUM_OF_WORKER_THREADS];
 int close_brutally_main = TRUE;
+User usr_arr[MAX_USERS];
+HANDLE file_mutex;
+HANDLE partner_played_semaphore;
 
 // Local functions declerations ------------------------------------------>
 static int FindFirstUnusedThreadSlot();
@@ -43,7 +46,7 @@ static DWORD ServiceThread(int *threadIdx);
 static DWORD exitProgramThread();
 void closeControlersThreadsAndResources(HANDLE *exit_program_handle);
 int createServerSemaphores();
-
+int createServerMutexes();
 // Functions -------------------------------------------------------------->
 
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
@@ -67,6 +70,7 @@ void MainServer(char port_num_char[5])
 	close_brutally[0] = FALSE;
 	close_brutally[1] = FALSE;
 	createServerSemaphores();
+	createServerMutexes();
 
     int StartupRes = WSAStartup( MAKEWORD( 2, 2 ), &wsaData );	           
 
@@ -259,28 +263,29 @@ static void closeProgramNicely()
 //Service thread is the thread that opens for each successful client connection and "talks" to the client.
 static DWORD ServiceThread(int *threadIdx ) 
 {
+	int user_idx_local = *threadIdx;
 	extern force_exit_flag;
+	extern User usr_arr[MAX_USERS];
 	int ret_val = TRUE;
 	BOOL Done = FALSE;
-
 	SOCKET *t_socket;
 	Player player;
 	Messege first_msg;
-
-
-	t_socket = &ThreadInputs[*threadIdx];
-	close_brutally[*threadIdx] = TRUE;
+	
+	t_socket = &ThreadInputs[user_idx_local];
+	close_brutally[user_idx_local] = TRUE;
 	initMessege(&first_msg, NULL, NULL, NULL, NULL, NULL, NULL);
 	player.win = 0;
 	player.loss = 0;
 
-
-	ret_val = decodeWrapper(&first_msg, &ThreadInputs[*threadIdx]);
+	ret_val = decodeWrapper(&first_msg, &ThreadInputs[user_idx_local]);
 	if (!STRINGS_ARE_EQUAL(first_msg.type, CLIENT_REQUEST) || ret_val != TRUE) {
 		freeMessege(&first_msg);
 		goto MAIN_CLEAN;
 	}
-	else {
+
+	else 
+	{
 		strcpy_s(player.name, USERNAME_MAX_LEN, first_msg.params[0]);
 		printf("Player name: %s\n", player.name);
 		freeMessege(&first_msg);
@@ -288,6 +293,7 @@ static DWORD ServiceThread(int *threadIdx )
 	
 	ret_val = sendMessegeWrapper(*t_socket, SERVER_APPROVED, NULL, NULL, NULL, NULL, NULL);
 	
+	initUser(&usr_arr[user_idx_local], &player, STATUS_INIT, user_idx_local, TRUE);
 	
 	if (ret_val == ERR) {
 		/*TO DO*/
@@ -305,19 +311,31 @@ static DWORD ServiceThread(int *threadIdx )
 		printMessege(&msg_struct);
 
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_CPU)) {
+			usr_arr[user_idx_local].status = STATUS_CLIENT_CPU;
 			ret_val = client_vs_cpu(t_socket, &player);
 			if (ret_val != TRUE) goto MAIN_CLEAN;
 		}
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_DISCONNECT)) {
 			//send end messege
+			usr_arr[user_idx_local].status = STATUS_CLIENT_QUIT;
 			Done = TRUE;
 		}
-
+		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_VERSUS)) {
+			usr_arr[user_idx_local].status = STATUS_CLIENT_VS;
+			ret_val = client_vs_client(t_socket, &usr_arr[user_idx_local]);
+			if (ret_val == NO_PARTNER)
+			{
+				sendMessegeWrapper(*t_socket, SERVER_NO_OPPONENTS, NULL, NULL, NULL, NULL, NULL);
+				printf("no partner\n");
+			}
+				
+		}
 		freeMessege(&msg_struct);
 
 	}
 	
 MAIN_CLEAN:
+	initUser(&usr_arr[user_idx_local], NULL, STATUS_INIT, ERR ,FALSE);
 	shutdown(*t_socket, SD_SEND);
 	closesocket( *t_socket );
 	return 0;
@@ -421,5 +439,45 @@ int createServerSemaphores()
 		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
 		ret_val = ERR;
 	}
+
+	partner_played_semaphore = NULL;
+	partner_played_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
+	if (partner_played_semaphore == NULL) {
+		printf("Semaphore creation failed\n");
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		ret_val = ERR;
+	}
+
 	return ret_val;
+}
+
+int createServerMutexes()
+{
+	/*
+	Description: init global mutexes
+	parameters:
+			 - none
+	Returns: TRUE if succeded, ERR o.w
+	*/
+	extern HANDLE file_mutex;
+	int retVal = TRUE;
+
+	// initialization
+	file_mutex = NULL;
+
+	// Create mutexes
+	file_mutex = CreateMutex(
+		NULL,   /* default security attributes */
+		FALSE,	/* don't lock mutex immediately */
+		NULL); /* un-named */
+	if (file_mutex == NULL) {
+		retVal = ERR;  goto Main_cleanup;
+	}
+
+Main_cleanup:
+	if (retVal == ERR) 
+	{
+		raiseError(6, __FILE__, __func__, __LINE__, "Mutex creation failed\n");
+	}
+	return retVal;
 }

@@ -24,6 +24,14 @@ typedef struct _Player
 	char name[USERNAME_MAX_LEN];
 } Player;
 
+typedef struct _User
+{
+	Player *player_data;
+	int status;
+	int idx;
+	BOOL online;
+} User;
+
 
 void MainServer(char port_num_char[5]);
 static DWORD exitProgramThread();

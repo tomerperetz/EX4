@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 	*/
 
 	SOCKET socket = INVALID_SOCKET;
-
+	char temp[10] = "tomer\n";
 	int len = 0, ret_val = TRUE;
 
 	// Checks whether the given arguments are valid  
@@ -35,6 +35,6 @@ int main(int argc, char *argv[])
 	}
 
 	MainServer(argv[1]);
-	
+
 	return 0;
 }
