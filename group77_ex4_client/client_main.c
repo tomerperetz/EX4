@@ -41,5 +41,6 @@ int main(int argc, char *argv[])
 		exit_code = MainClient(argv[1], argv[2], argv[3], try_to_reconnect);
 		try_to_reconnect = TRUE;
 	}		
+	printf("Thank You for playing, we hope that you had a good time :).\n");
 	return 0;
 }
