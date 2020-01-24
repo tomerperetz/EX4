@@ -135,7 +135,12 @@ void MainServer(char port_num_char[5])
 	for ( Ind = 0; Ind < NUM_OF_WORKER_THREADS; Ind++ )
 		ThreadHandles[Ind] = NULL;
 
-    printf( "Waiting for a client to connect...\n" );
+    
+	// init users
+	initUser(&usr_arr[0], NULL, STATUS_INIT, 0, FALSE, DONT_KNOW);
+	initUser(&usr_arr[1], NULL, STATUS_INIT, 1, FALSE, DONT_KNOW);
+	
+	printf( "Waiting for a client to connect...\n" );
 	
 	exit_program_handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) exitProgramThread, NULL, 0, NULL);
 	if (exit_program_handle == NULL)

@@ -391,6 +391,14 @@ int client_vs_client(SOCKET *socket, User *usr)
 		for (int i = 0; i < MAX_WAIT_TIME; i++)
 		{
 			ret_val = searchPartner();
+			if ((usr_arr[oponnent_idx].play_vs_again == FALSE)&&(usr_arr[oponnent_idx].online))
+			{
+				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, usr_arr[oponnent_idx].player_data->name, NULL, NULL, NULL, NULL);
+				if (ret_val != TRUE) goto MAIN_CLEANUP;
+				usr_arr[usr->idx].play_vs_again = DONT_KNOW;
+				usr_arr[oponnent_idx].play_vs_again = DONT_KNOW;
+				return TRUE;
+			}
 			if (ret_val) break;
 			Sleep(1000);
 		}
