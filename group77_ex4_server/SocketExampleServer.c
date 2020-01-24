@@ -336,7 +336,6 @@ static DWORD ServiceThread(int *threadIdx )
 			if (ret_val == NO_PARTNER)
 			{
 				sendMessegeWrapper(*t_socket, SERVER_NO_OPPONENTS, NULL, NULL, NULL, NULL, NULL);
-				printf("no partner\n");
 			}
 				
 		}

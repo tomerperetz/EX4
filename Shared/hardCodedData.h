@@ -24,14 +24,18 @@ Hard coded data: includes and defines
 #include <winsock2.h>
 #include <WS2tcpip.h>
 
+// shared ------------>
 #include "argparser.h"
 #include "lib_errorHandler.h"
 #include "lib_osHandler.h"
 #include "SocketSendRecvTools.h"
-#include "../group77_ex4_server/SocketExampleServer.h"
-#include "../group77_ex4_client/SocketExampleClient.h"
 #include "SocketExampleShared.h"
-#include "SocketSendRecvTools.h"
+
+// server ------------>
+#include "../group77_ex4_server/SocketExampleServer.h"
+
+// client ------------>
+#include "../group77_ex4_client/SocketExampleClient.h"
 #include "../group77_ex4_client/client_services.h"
 
 
@@ -46,15 +50,13 @@ static const char END_OF_MSG = '\n';
 #define NAME_MAX_LEN 20
 #define SERVER_EXPECTED_ARGC 1
 #define CLIENT_EXPECTED_ARGC 3
-
-
 #define CONNECTED 0
 #define RECONNECT 1
 #define EXIT_PROGRAM 2
-
 #define PLAYER_MOVE 100
 #define ROCK 0
 #define PAPER 1
 #define SCISSORS 2
 #define LIZARD 3
 #define SPOCK 4
+#define GAME_SESSION_PATH "GameSession.txt"

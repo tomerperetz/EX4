@@ -3,10 +3,11 @@
 Authors:
 	- Segev Elmalem, ID: 203149000
 	- Tomer Peretz, ID: 305002206
-Project: EX4
-Input: 
-Outputs: <
-Description:
+Project: group77_ex4_server
+Input: <port number>
+Outputs: -
+Description: "Rock, Paper, Scissors, Lizard, Spock" game server. allows 2 users to connect and play vs cpu, 
+				vs each other or exit program.
 ====================================================================================================================
 */
 
@@ -17,15 +18,14 @@ Description:
 // Functions --------------------------------------------------------------------
 int main(int argc, char *argv[])
 {	/*
-	Description: main. recieves user args and parse it to structs.
+	Description: main. recieves user args and init the server. looks for "GameSession.txt" file, and delete it if it exists.
 	parameters:
 			 - int argc - num of args
 			 - char* argv[] - args
-	Returns: 0 if succeded
+	Returns: 0
 	*/
 
 	SOCKET socket = INVALID_SOCKET;
-	char temp[10] = "tomer\n";
 	int len = 0, ret_val = TRUE;
 
 	// Checks whether the given arguments are valid  
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
 	if (!seekAndDestroy())
 	{
-		printf("Please delete gameSession.txt file and restart program.\n");
+		printf("Please delete manually or remove read only from  gameSession.txt file and restart program.\n");
 		return 0;
 	}
 

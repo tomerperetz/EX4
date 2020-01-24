@@ -10,10 +10,9 @@
 #define NO_PARTNER 0
 // Structs ------------------------------------------------------->
 
+
 //Declerations ---------------------------------------------------->
 int client_vs_cpu(SOCKET *socket, Player *player);
-
-int searchPartner();
 
 int client_vs_client(SOCKET *socket, User *usr);
 

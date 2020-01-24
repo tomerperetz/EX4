@@ -1,16 +1,15 @@
-#include "./server_services.h"
+#include "server_services.h"
 #include <time.h>
 
 // Private Functions Declerations -------------------------------------------------->
 void getPlayerMoveIdx(char *player_move, int *idx);
-static char option_lst[5][20] = { "ROCK", "PAPER", "SCISSORS", "LIZARD", "SPOCK" };
 int playGame(int player1Move, int player2Move);
 
 // Constants ------------------------------------------------------------------------>
 int player1_won = 1;
 int player2_won = 2;
 int draw = 0;
-#define GAME_SESSION_PATH "GameSession.txt"
+static char option_lst[5][20] = { "ROCK", "PAPER", "SCISSORS", "LIZARD", "SPOCK" };
 #define MAX_WAIT_TIME 30
 #define MAX_MOVE_SIZE 10
 
@@ -261,7 +260,6 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 	// Check Results
 	if (game_results == draw)
 	{
-		printf(SERVER_GAME_RESULTS_DRAW_MSG, player_move, usr_arr[opponent_idx].player_data->name, opponent_move);
 		ret_val = sendMessegeWrapper(*socket, SERVER_GAME_RESULTS, player_move, usr_arr[opponent_idx].player_data->name, opponent_move, "DRAW", NULL);
 		return TRUE;
 	}
@@ -279,9 +277,7 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 		ret_val = ERR;
 
 	// send results to user
-	printf("winner: %s\n", winner_name);
 	ret_val = sendMessegeWrapper(*socket, SERVER_GAME_RESULTS, player_move, usr_arr[opponent_idx].player_data->name, opponent_move, winner_name, NULL);
-
 
 
 Realese_And_Quit:
@@ -291,80 +287,107 @@ Realese_And_Quit:
 
 int client_vs_client(SOCKET *socket, User *usr)
 {
+	/*
+	Description: Client vs Client game, recives move from user and play vs other thread
+	parameters:
+			 - SOCKET *socket - Current thread socket
+			 - User *usr - User struct
+	Returns: TRUE if suceeded, NO_PARTNER if couldn't get partner
+	*/
+	
 	extern User usr_arr[MAX_USERS];
 	int ret_val = TRUE;
 	int game_results = ERR;
-	char *player_move_temp = "ROCK";
 	int oponnent_idx = ERR;
 	int done = FALSE;
 
+	// get opponent idx
 	if (usr->idx == 0)
 		oponnent_idx = 1;
 	else
 		oponnent_idx = 0;
-	while (!done) {
+	
+	// Game loop
+	while (!done) 
+	{
+		// delete old game session file if exists
+		if (!seekAndDestroy())
+		{
+			printf("Please delete manually or remove read only from  gameSession.txt file and restart program.\n");
+			return FALSE;
+
+		}
+
+		// search for partner for 30 secondes, else return
 		for (int i = 0; i < MAX_WAIT_TIME; i++)
 		{
 			ret_val = searchPartner();
 			if (ret_val) break;
 			Sleep(1000);
 		}
+
 		// if couldn't get an opponent
 		if (!ret_val) return NO_PARTNER;
 
 		// Send opponent name to user
 		ret_val = sendMessegeWrapper(*socket, SERVER_INVITE, usr_arr[oponnent_idx].player_data->name, NULL, NULL, NULL, NULL);
-
-		if (ret_val != TRUE) {
-			goto MAIN_CLEANUP;
-		}
+		if (ret_val != TRUE) goto MAIN_CLEANUP;
 
 		// ask user for his move
-		Messege client_reply;
-		Messege client_reply_2;
-		initMessege(&client_reply, NULL, NULL, NULL, NULL, NULL, NULL);
+		Messege client_reply_move;
+		Messege client_reply_game_over_menu;
+		
+		// send move request to player
 		ret_val = sendMessegeWrapper(*socket, SERVER_PLAYER_MOVE_REQUEST, NULL, NULL, NULL, NULL, NULL);
-		if (ret_val != TRUE) {
-			goto MAIN_CLEANUP;
-		}
-		ret_val = decodeWrapper(&client_reply, socket);
-		if (ret_val != TRUE || !STRINGS_ARE_EQUAL(client_reply.type, CLIENT_PLAYER_MOVE)) {
-			if (ret_val == TRUE) freeMessege(&client_reply);
+		if (ret_val != TRUE) goto MAIN_CLEANUP;
+
+		// recv move from player
+		initMessege(&client_reply_move, NULL, NULL, NULL, NULL, NULL, NULL);
+		ret_val = decodeWrapper(&client_reply_move, socket);
+		if (ret_val != TRUE || !STRINGS_ARE_EQUAL(client_reply_move.type, CLIENT_PLAYER_MOVE)) 	
+		{
+			freeMessege(&client_reply_move);
 			ret_val = ERR;
 			goto MAIN_CLEANUP;
 		}
-		// Game
-		ret_val = playVsGame(client_reply.params[0], usr->idx, oponnent_idx, socket);
+
+		// play Game
+		ret_val = playVsGame(client_reply_move.params[0], usr->idx, oponnent_idx, socket);
 		if (ret_val != TRUE)
 		{
-			freeMessege(&client_reply);
+			freeMessege(&client_reply_move);
+			goto MAIN_CLEANUP;
+		}
+		freeMessege(&client_reply_move);
+
+		// send game over menu
+		ret_val = sendMessegeWrapper(*socket, SERVER_GAME_OVER_MENU, CLIENT_CPU, NULL, NULL, NULL, NULL);
+		if (ret_val != TRUE) goto MAIN_CLEANUP;
+
+		// recv game over menu answer from user
+		initMessege(&client_reply_game_over_menu, NULL, NULL, NULL, NULL, NULL, NULL);
+		ret_val = decodeWrapper(&client_reply_game_over_menu, socket);
+
+		// if user wants to go back to main menu break loop
+		if (STRINGS_ARE_EQUAL(client_reply_game_over_menu.type, CLIENT_MAIN_MENU) || ret_val != TRUE) {
+			if (ret_val == TRUE) freeMessege(&client_reply_game_over_menu);
+			done = TRUE;
 			goto MAIN_CLEANUP;
 		}
 
-		ret_val = sendMessegeWrapper(*socket, SERVER_GAME_OVER_MENU, CLIENT_CPU, NULL, NULL, NULL, NULL);
-		if (ret_val != TRUE) 
-		{
-			freeMessege(&client_reply);
-			goto MAIN_CLEANUP;
-		}
-		ret_val = decodeWrapper(&client_reply_2, socket);
-		if (STRINGS_ARE_EQUAL(client_reply_2.type, CLIENT_MAIN_MENU) || ret_val != TRUE) {
-			if (ret_val == TRUE) freeMessege(&client_reply_2);
+		// else if we got wrong reply
+		else if (!(STRINGS_ARE_EQUAL(client_reply_game_over_menu.type, CLIENT_REPLAY))) {
+			printf("The messege type - %s - is invalid\n", client_reply_game_over_menu.type);
 			done = TRUE;
-			freeMessege(&client_reply);
+			freeMessege(&client_reply_game_over_menu);
 			goto MAIN_CLEANUP;
 		}
-		else if (!(STRINGS_ARE_EQUAL(client_reply_2.type, CLIENT_REPLAY))) {
-			printf("The messege type - %s - is invalid\n", client_reply_2.type);
-			done = TRUE;
-			freeMessege(&client_reply);
-			freeMessege(&client_reply_2);
-			goto MAIN_CLEANUP;
-		}
-		freeMessege(&client_reply);
-		freeMessege(&client_reply_2);
+		
+		// else we start loop again
+		freeMessege(&client_reply_game_over_menu);
 		usr->status = STATUS_CLIENT_VS;
 	}
+
 MAIN_CLEANUP:
 	return TRUE;
 }
