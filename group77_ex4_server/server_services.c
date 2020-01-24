@@ -13,6 +13,8 @@ static char option_lst[5][20] = { "ROCK", "PAPER", "SCISSORS", "LIZARD", "SPOCK"
 #define MAX_WAIT_TIME 15
 #define MAX_MOVE_SIZE 10
 
+// Functions ------------------------------------------------------------------------>
+
 void removeEnter(char *str)
 {
 	/*

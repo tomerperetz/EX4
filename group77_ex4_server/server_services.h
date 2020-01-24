@@ -8,8 +8,6 @@
 #define STATUS_CLIENT_QUIT 2
 #define MAX_USERS 2
 #define NO_PARTNER 0
-// Structs ------------------------------------------------------->
-
 
 //Declerations ---------------------------------------------------->
 int client_vs_cpu(SOCKET *socket, Player *player);

@@ -32,7 +32,7 @@ Hard coded data: includes and defines
 #include "SocketExampleShared.h"
 
 // server ------------>
-#include "../group77_ex4_server/SocketExampleServer.h"
+#include "../group77_ex4_server/SocketServer.h"
 
 // client ------------>
 #include "../group77_ex4_client/SocketExampleClient.h"
