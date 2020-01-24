@@ -10,11 +10,18 @@ int player1_won = 1;
 int player2_won = 2;
 int draw = 0;
 static char option_lst[5][20] = { "ROCK", "PAPER", "SCISSORS", "LIZARD", "SPOCK" };
-#define MAX_WAIT_TIME 30
+#define MAX_WAIT_TIME 15
 #define MAX_MOVE_SIZE 10
 
 void removeEnter(char *str)
 {
+	/*
+	Description: remove \n from a string
+	parameters:
+			 - char *str
+	Returns: void
+	*/
+
 	for (str; *str != '\0'; str++)
 	{
 		if (*str == '\n')
@@ -24,56 +31,74 @@ void removeEnter(char *str)
 
 int client_vs_cpu(SOCKET *socket, Player *player)
 {
+	/*
+	Description: reads move from player, choose random move from cpu and calc winner
+	parameters:
+			 - Player *player
+			 - SOCKET *socket
+	Returns: TRUE if succeded, ERR o.w
+	*/
+
 	int cpu_move_idx = 0, player_move_idx = ERR;
 	int ret_val = TRUE;
 	int done = FALSE;
 	int result = 0;
 	char winner_name[USERNAME_MAX_LEN], server_name[10] = "Server";
-	Messege client_first_msg; 
-
-	initMessege(&client_first_msg, CLIENT_PLAYER_MOVE, "ROCK", NULL, NULL, NULL, NULL);
 	
 	srand((unsigned int) time(NULL));   // Initialization, should only be called once.
 
-	while (!done) {
-
+	while (!done) 
+	{
 		Messege client_sec_msg;
+		Messege client_first_msg;
+		initMessege(&client_first_msg, NULL, NULL, NULL, NULL, NULL, NULL);
 		initMessege(&client_sec_msg, NULL, NULL, NULL, NULL, NULL, NULL);
 
 		cpu_move_idx = rand() % 5;      // Returns a pseudo-random integer between 0 and 5.
 	
+		// send move request to client
 		ret_val = sendMessegeWrapper(*socket, SERVER_PLAYER_MOVE_REQUEST, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val != TRUE) {
 			done = TRUE;
 			goto MAIN_CLEANUP2;
 		}
+
+		// recv move from to client
 		ret_val = decodeWrapper(&client_first_msg, socket);
 		if (ret_val != TRUE || !STRINGS_ARE_EQUAL(client_first_msg.type, CLIENT_PLAYER_MOVE)) {
 			ret_val = ERR;
 			done = TRUE;
 			goto MAIN_CLEANUP2;
 		}
+
+		// get game results
 		getPlayerMoveIdx(client_first_msg.params[0], &player_move_idx);
 		result = playGame(player_move_idx, cpu_move_idx);
 
-		if (result == player1_won) {
+		if (result == player1_won) 
+		{
 			strcpy_s(winner_name, USERNAME_MAX_LEN, player->name);
 			player->win += 1;
-
 		}
-		else if (result == player2_won) {
+		else if (result == player2_won) 
+		{
 			strcpy_s(winner_name, USERNAME_MAX_LEN, server_name);
-			player->win -= 1;
+			player->loss += 1;
 		}
-		else if (result == draw) {
+
+		else if (result == draw) 
+		{
 			strcpy_s(winner_name, USERNAME_MAX_LEN, "DRAW");
 		}
-		else {
+
+		else 
+		{
 			ret_val = ERR;
 			done = TRUE;
 			goto MAIN_CLEANUP2;
 		}
 
+		// send results to user
 		ret_val = sendMessegeWrapper(*socket, SERVER_GAME_RESULTS, client_first_msg.params[0], server_name, option_lst[cpu_move_idx],
 			winner_name, NULL);
 
@@ -81,6 +106,7 @@ int client_vs_cpu(SOCKET *socket, Player *player)
 			done = TRUE;
 			goto MAIN_CLEANUP2;
 		}
+		// send game over menu to user
 		ret_val = sendMessegeWrapper(*socket, SERVER_GAME_OVER_MENU, CLIENT_CPU, NULL, NULL, NULL, NULL);
 		if (ret_val != TRUE) {
 			done = TRUE;
@@ -96,16 +122,22 @@ int client_vs_cpu(SOCKET *socket, Player *player)
 			done = TRUE;
 			goto MAIN_CLEANUP2;
 		}
+
 MAIN_CLEANUP2:
 		freeMessege(&client_sec_msg);
+		freeMessege(&client_first_msg);
 	}
 
-	freeMessege(&client_first_msg);
 	return ret_val;
 }
 
 int searchPartner()
 {
+	/*
+	Description: search 2 online players that wants to play vs other user.
+	Returns: TRUE if 2 users were found, FALSE o.w
+	*/
+
 	extern User usr_arr[MAX_USERS];
 
 	BOOL usr_1_status = FALSE;
@@ -133,6 +165,12 @@ int gameSessionFileExist()
 
 int deleteGameSessionFile()
 {
+	/*
+	Description: delete game session file
+	parameters: 
+	Returns: TRUE if succeded, FALSE o.w
+	*/
+
 	if (remove(GAME_SESSION_PATH) == 0)
 		return TRUE;
 
@@ -143,54 +181,72 @@ int deleteGameSessionFile()
 
 int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *socket)
 {
+	/*
+	Description: writes current player move to txt file, reads opponents move, calc winner and send msg to users
+	parameters:
+			 - char *player_move
+			 - int player_idx
+			 - int opponent_idx
+			 - SOCKET *socket
+	Returns: TRUE if succeded, ERR o.w
+	*/
+
 	extern User usr_arr[MAX_USERS];
+	extern HANDLE file_mutex;
+	extern HANDLE partner_played_semaphore;
 	int ret_val = TRUE;
+	int player_move_idx = ERR;
+	int opponent_move_idx = ERR;
+	int game_results = ERR;
+	char opponent_move[MAX_MOVE_SIZE];
+	char winner_name[NAME_MAX_LEN];
 	DWORD wait_code = 0;
 	BOOL release_res = TRUE;
 	BOOL writer_flag = FALSE;
-	extern HANDLE file_mutex;
-	extern HANDLE partner_played_semaphore;
 	FILE *fp;
-	char opponent_move[MAX_MOVE_SIZE];
-	int player_move_idx = ERR;
-	int opponent_move_idx = ERR;
-	int game_results=ERR;
-	char winner_name[NAME_MAX_LEN];
 
 	// File access mutex
 	wait_code = WaitForSingleObject(file_mutex, INFINITE);
-	if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) {
+	if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) 
+	{
 		ret_val = ERR;
+		release_res = ReleaseMutex(file_mutex);
+		if (release_res == FALSE)
+		{
+			printf("Realese semaphore error!\n");
+			raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		}
 		goto Realese_And_Quit;
 	}
 
+	// restart user status for next game iteration
 	usr_arr[player_idx].status = STATUS_INIT;
 
+	// communicate moves between the threads using GameSession.txt file
 	if (gameSessionFileExist())
 	{
 		// this is the seconed user
 		// read first player move
-		if (fopen_s(&fp, GAME_SESSION_PATH, "r") != FALSE || fp == NULL) {
+		if (fopen_s(&fp, GAME_SESSION_PATH, "r") != FALSE || fp == NULL) 
+		{
 			printf("Can't open file: %s\n", GAME_SESSION_PATH);
 
 			raiseError(2, __FILE__, __func__, __LINE__, ERROR_ID_2_IO);
 			return ERR;
 		}
-		
 		fgets(opponent_move, MAX_MOVE_SIZE, fp);
-		
 		fclose(fp);
+
 		// append 2nd player move
-		if (fopen_s(&fp, GAME_SESSION_PATH, "a") != FALSE || fp == NULL) {
+		if (fopen_s(&fp, GAME_SESSION_PATH, "a") != FALSE || fp == NULL) 
+		{
 			printf("Can't open file: %s\n", GAME_SESSION_PATH);
 
 			raiseError(2, __FILE__, __func__, __LINE__, ERROR_ID_2_IO);
 			return ERR;
 		}
-
 		fprintf_s(fp, player_move);
 		fprintf_s(fp, "\n");
-
 		fclose(fp);
 
 		// Release semaphore for 1st user to read
@@ -204,85 +260,92 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 	}
 	else
 	{
-		//this is for the 1st user, so use write
+		// 1st user, notigy with writer_flag
 		writer_flag = TRUE;
 		
-		if (fopen_s(&fp, GAME_SESSION_PATH, "w") != FALSE || fp == NULL) {
+		// use write
+		if (fopen_s(&fp, GAME_SESSION_PATH, "w") != FALSE || fp == NULL) 
+		{
 			printf("Can't open file: %s\n", GAME_SESSION_PATH);
 
 			raiseError(2, __FILE__, __func__, __LINE__, ERROR_ID_2_IO);
 			return ERR;
 		}
-		
 		fprintf_s(fp, player_move);
 		fprintf_s(fp, "\n");
-
 		fclose(fp);
 	}	
-
+	
+	//Release file mutex
 	release_res = ReleaseMutex(file_mutex);
+	if (release_res == FALSE)
+	{
+		printf("Realese semaphore error!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+	}
 
 	if (writer_flag)
 	{
 		// 1st user waits until 2nd user wrote his move
 		wait_code = WaitForSingleObject(partner_played_semaphore, INFINITE);
-		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) {
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) 
+		{
 			ret_val = ERR;
+			release_res = ReleaseSemaphore(partner_played_semaphore, 1, NULL);
+			if (release_res == FALSE)
+			{
+				printf("Realese semaphore error!\n");
+				raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+			}
 			goto Realese_And_Quit;
 		}
 
 		// 1st user read from file after 2nd user wrote his move
-		if (fopen_s(&fp, GAME_SESSION_PATH, "r") != FALSE || fp == NULL) {
+		if (fopen_s(&fp, GAME_SESSION_PATH, "r") != FALSE || fp == NULL) 
+		{
 			printf("Can't open file: %s\n", GAME_SESSION_PATH);
-
 			raiseError(2, __FILE__, __func__, __LINE__, ERROR_ID_2_IO);
 			return ERR;
 		}
-
 		// trash the first line
 		fgets(opponent_move, MAX_MOVE_SIZE, fp);
-		
 		// save the 2nd line - opponent move
 		fgets(opponent_move, MAX_MOVE_SIZE, fp);
-
 		fclose(fp);
 		// 1st user deletes the file
 		if (!deleteGameSessionFile()) return ERR;
 	}
 
 	// Game
-	removeEnter(opponent_move);
+	removeEnter(opponent_move); //remove \\n from line read
 	getPlayerMoveIdx(player_move, &player_move_idx);
 	getPlayerMoveIdx(opponent_move, &opponent_move_idx);
-
+	// calc game results
 	game_results = playGame(player_move_idx, opponent_move_idx);
 
 	// Check Results
 	if (game_results == draw)
 	{
 		ret_val = sendMessegeWrapper(*socket, SERVER_GAME_RESULTS, player_move, usr_arr[opponent_idx].player_data->name, opponent_move, "DRAW", NULL);
-		return TRUE;
+		return ret_val;
 	}
 
 	if (game_results == player1_won) 
 	{
 		strcpy_s(winner_name, USERNAME_MAX_LEN, usr_arr[player_idx].player_data->name);
 		usr_arr[player_idx].player_data->win += 1;
+		usr_arr[opponent_idx].player_data->loss += 1;
 	}
 	else if (game_results == player2_won) {
 		strcpy_s(winner_name, USERNAME_MAX_LEN, usr_arr[opponent_idx].player_data->name);
-		usr_arr[opponent_idx].player_data->win -= 1;
 	}
-	else
-		ret_val = ERR;
+	else ret_val = ERR;
 
 	// send results to user
 	ret_val = sendMessegeWrapper(*socket, SERVER_GAME_RESULTS, player_move, usr_arr[opponent_idx].player_data->name, opponent_move, winner_name, NULL);
 
-
 Realese_And_Quit:
-
-	return TRUE;
+	return ret_val;
 }
 
 int client_vs_client(SOCKET *socket, User *usr)
@@ -300,6 +363,8 @@ int client_vs_client(SOCKET *socket, User *usr)
 	int game_results = ERR;
 	int oponnent_idx = ERR;
 	int done = FALSE;
+	Messege client_reply_move;
+	Messege client_reply_game_over_menu;
 
 	// get opponent idx
 	if (usr->idx == 0)
@@ -334,9 +399,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 		if (ret_val != TRUE) goto MAIN_CLEANUP;
 
 		// ask user for his move
-		Messege client_reply_move;
-		Messege client_reply_game_over_menu;
-		
+
 		// send move request to player
 		ret_val = sendMessegeWrapper(*socket, SERVER_PLAYER_MOVE_REQUEST, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val != TRUE) goto MAIN_CLEANUP;
@@ -389,11 +452,19 @@ int client_vs_client(SOCKET *socket, User *usr)
 	}
 
 MAIN_CLEANUP:
-	return TRUE;
+	return ret_val;
 }
 
 void getPlayerMoveIdx(char *player_move, int *idx)
 {
+	/*
+	Description: convert player move from char to equivelent int
+	parameters:
+			- char *player_move
+			- int idx
+	Returns: void
+	*/
+
 	if (STRINGS_ARE_EQUAL(player_move, option_lst[0]))
 		*idx = 0;
 	else if (STRINGS_ARE_EQUAL(player_move, option_lst[1]))
@@ -408,7 +479,17 @@ void getPlayerMoveIdx(char *player_move, int *idx)
 		*idx = ERR;
 }
 
-int playGame(int player1Move, int player2Move) {
+int playGame(int player1Move, int player2Move) 
+{
+
+	/*
+	Description: get winner from 2 players according to game rules.
+	parameters:
+			 - int player1Move
+			 - int player2Move
+	Returns: int winner - player 1, player 2 or draw.
+	*/
+
 	switch (player1Move)
 	{
 	case (ROCK):
@@ -447,7 +528,17 @@ int playGame(int player1Move, int player2Move) {
 
 void initUser(User *new_user, Player *p_player_data, int status, int idx, BOOL online)
 {
-	// Initializtion
+	/*
+	Description: initialize user struct
+	parameters:
+			 - User *new_user - user struct dst variable
+			 - Player *p_player_data - player data (name, win, loss)
+			 - int status - is he intersted in playing vs other client
+			 - int idx - thread idx, same as usr_arr idx
+			 - BOOL online - TRUE if user is connected
+	Returns: void
+	*/
+
 	new_user->player_data = p_player_data;
 	new_user->status = status;
 	new_user->online = online;
@@ -457,6 +548,11 @@ void initUser(User *new_user, Player *p_player_data, int status, int idx, BOOL o
  
 int seekAndDestroy()
 {
+	/*
+	Description: if GameSession.txt file exists - delete it
+	Returns: TRUE if succeded, FALSE o.w
+	*/
+
 	int ret = TRUE;
 	if (gameSessionFileExist())
 		ret = deleteGameSessionFile();
