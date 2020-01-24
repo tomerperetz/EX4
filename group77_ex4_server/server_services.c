@@ -365,8 +365,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 	int game_results = ERR;
 	int oponnent_idx = ERR;
 	int done = FALSE;
-	Messege client_reply_move;
-	Messege client_reply_game_over_menu;
+
 
 	// get opponent idx
 	if (usr->idx == 0)
@@ -377,6 +376,9 @@ int client_vs_client(SOCKET *socket, User *usr)
 	// Game loop
 	while (!done) 
 	{
+		Messege client_reply_move;
+		Messege client_reply_game_over_menu;
+
 		// delete old game session file if exists
 		if (!seekAndDestroy())
 		{
@@ -385,7 +387,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 
 		}
 
-		// search for partner for 30 secondes, else return
+		// search for partner for 15 secondes, else return
 		for (int i = 0; i < MAX_WAIT_TIME; i++)
 		{
 			ret_val = searchPartner();
@@ -436,6 +438,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 		// if user wants to go back to main menu break loop
 		if (STRINGS_ARE_EQUAL(client_reply_game_over_menu.type, CLIENT_MAIN_MENU) || ret_val != TRUE) {
 			if (ret_val == TRUE) freeMessege(&client_reply_game_over_menu);
+			usr->play_vs_again = FALSE;
 			done = TRUE;
 			goto MAIN_CLEANUP;
 		}
@@ -528,7 +531,7 @@ int playGame(int player1Move, int player2Move)
 	return ERR;
 }
 
-void initUser(User *new_user, Player *p_player_data, int status, int idx, BOOL online)
+void initUser(User *new_user, Player *p_player_data, int status, int idx, BOOL online, int play_vs_again)
 {
 	/*
 	Description: initialize user struct
@@ -545,6 +548,7 @@ void initUser(User *new_user, Player *p_player_data, int status, int idx, BOOL o
 	new_user->status = status;
 	new_user->online = online;
 	new_user->idx = idx;
+	new_user->play_vs_again = play_vs_again;
 	return;
 }
  

@@ -15,7 +15,8 @@
 
 #define USERNAME_MAX_LEN 20
 #define DONT_CLOSE_BRUTALLY 3
-#define CLOSE_BRUTALLY = 1
+#define CLOSE_BRUTALLY 1
+#define DONT_KNOW 2
 /*oOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoOoO*/
 typedef struct _Player
 {
@@ -30,6 +31,7 @@ typedef struct _User
 	int status;
 	int idx;
 	BOOL online;
+	int play_vs_again;
 } User;
 
 

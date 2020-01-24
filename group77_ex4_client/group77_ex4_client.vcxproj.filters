@@ -24,9 +24,6 @@
     <ClCompile Include="client_main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SocketExampleClient.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Shared\argparser.c">
       <Filter>Shared Source Files</Filter>
     </ClCompile>
@@ -42,11 +39,11 @@
     <ClCompile Include="client_services.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SocketClient.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SocketExampleClient.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\Shared\argparser.h">
       <Filter>Shared Header Files</Filter>
     </ClInclude>
@@ -66,6 +63,9 @@
       <Filter>Shared Header Files</Filter>
     </ClInclude>
     <ClInclude Include="client_services.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketClient.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

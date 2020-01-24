@@ -308,7 +308,7 @@ static DWORD ServiceThread(int *threadIdx )
 	if (ret_val!=TRUE) goto MAIN_CLEAN;
 
 	// init user struct
-	initUser(&usr_arr[user_idx_local], &player, STATUS_INIT, user_idx_local, TRUE);
+	initUser(&usr_arr[user_idx_local], &player, STATUS_INIT, user_idx_local, TRUE, DONT_KNOW);
 	if (ret_val == ERR) goto MAIN_CLEAN;
 
 	while ( !Done ) 
@@ -344,7 +344,13 @@ static DWORD ServiceThread(int *threadIdx )
 			usr_arr[user_idx_local].status = STATUS_CLIENT_VS;
 			ret_val = client_vs_client(t_socket, &usr_arr[user_idx_local]);
 			// if ret_val is no partner, update user and let him choose what's next
-			if (ret_val == NO_PARTNER) sendMessegeWrapper(*t_socket, SERVER_NO_OPPONENTS, NULL, NULL, NULL, NULL, NULL);	
+			if (ret_val == NO_PARTNER)
+			{
+				ret_val = sendMessegeWrapper(*t_socket, SERVER_NO_OPPONENTS, NULL, NULL, NULL, NULL, NULL);
+				if (ret_val != TRUE) goto MAIN_CLEAN;
+				usr_arr[user_idx_local].status = STATUS_INIT;
+			}
+
 			// if ret_val is err
 			if (ret_val == ERR) Done = TRUE;
 		}
@@ -353,7 +359,7 @@ static DWORD ServiceThread(int *threadIdx )
 	
 MAIN_CLEAN:
 	// user is done, restart his user struct back to offline mode
-	initUser(&usr_arr[user_idx_local], NULL, STATUS_INIT, ERR ,FALSE);
+	initUser(&usr_arr[user_idx_local], NULL, STATUS_INIT, ERR ,FALSE, DONT_KNOW);
 	close_brutally[*threadIdx] = FALSE;
 	shutdown(*t_socket, SD_SEND);
 	return 0;

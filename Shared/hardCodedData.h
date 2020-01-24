@@ -35,7 +35,7 @@ Hard coded data: includes and defines
 #include "../group77_ex4_server/SocketServer.h"
 
 // client ------------>
-#include "../group77_ex4_client/SocketExampleClient.h"
+#include "../group77_ex4_client/SocketClient.h"
 #include "../group77_ex4_client/client_services.h"
 
 

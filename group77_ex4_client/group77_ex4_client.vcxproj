@@ -124,7 +124,7 @@
     <ClCompile Include="..\Shared\SocketSendRecvTools.c" />
     <ClCompile Include="client_main.c" />
     <ClCompile Include="client_services.c" />
-    <ClCompile Include="SocketExampleClient.c" />
+    <ClCompile Include="SocketClient.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Shared\argparser.h" />
@@ -134,7 +134,7 @@
     <ClInclude Include="..\Shared\SocketExampleShared.h" />
     <ClInclude Include="..\Shared\SocketSendRecvTools.h" />
     <ClInclude Include="client_services.h" />
-    <ClInclude Include="SocketExampleClient.h" />
+    <ClInclude Include="SocketClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

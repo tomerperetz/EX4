@@ -164,6 +164,7 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 
 		return TRUE;
 	}
+
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_INVITE))
 	{
 		printf(SERVER_INVITE_MSG, msg_in->params[0]);
@@ -226,20 +227,19 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_OPPONENT_QUIT))
 	{
 		printf(SERVER_OPPONENT_QUIT_MSG, msg_in->params[0]);
-		initMessege(msg_out, CLIENT_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
-		return TRUE;
+		return NO_NEED_TO_REPLY;
 	}
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_NO_OPPONENTS))
 	{
 		printf(SERVER_NO_OPPONENTS_MSG);
-		initMessege(msg_out, CLIENT_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);
+		return NO_NEED_TO_REPLY;
 	}
 
 	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_LEADERBOARD))
 	{
 		printf("Print leader board somehow\n");
-		initMessege(msg_out, CLIENT_MAIN_MENU, NULL, NULL, NULL, NULL, NULL);;
+		return NO_NEED_TO_REPLY;
 	}
 
 	else

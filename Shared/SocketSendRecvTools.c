@@ -1,5 +1,5 @@
 #include "SocketSendRecvTools.h"
-#include "./../group77_ex4_client/SocketExampleClient.h"
+#include "./../group77_ex4_client/SocketClient.h"
 #include <stdio.h>
 
 msg_fifo *msg_q;
