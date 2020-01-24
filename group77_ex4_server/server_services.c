@@ -361,11 +361,12 @@ int client_vs_client(SOCKET *socket, User *usr)
 	*/
 	
 	extern User usr_arr[MAX_USERS];
+	char opponent_name[NAME_MAX_LEN];
 	int ret_val = TRUE;
 	int game_results = ERR;
 	int oponnent_idx = ERR;
 	int done = FALSE;
-
+	int game_number = 0;
 
 	// get opponent idx
 	if (usr->idx == 0)
@@ -378,7 +379,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 	{
 		Messege client_reply_move;
 		Messege client_reply_game_over_menu;
-
+		game_number++;
 		// delete old game session file if exists
 		if (!seekAndDestroy())
 		{
@@ -391,15 +392,30 @@ int client_vs_client(SOCKET *socket, User *usr)
 		for (int i = 0; i < MAX_WAIT_TIME; i++)
 		{
 			ret_val = searchPartner();
+			
+			// if oppenent is online and don't want to play
 			if ((usr_arr[oponnent_idx].play_vs_again == FALSE)&&(usr_arr[oponnent_idx].online))
 			{
-				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, usr_arr[oponnent_idx].player_data->name, NULL, NULL, NULL, NULL);
+				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, opponent_name, NULL, NULL, NULL, NULL);
 				if (ret_val != TRUE) goto MAIN_CLEANUP;
 				usr_arr[usr->idx].play_vs_again = DONT_KNOW;
 				usr_arr[oponnent_idx].play_vs_again = DONT_KNOW;
 				return TRUE;
 			}
-			if (ret_val) break;
+
+			// if oppenent is offline after first game - he quit before we answered
+			if ((game_number > 1) && (!usr_arr[oponnent_idx].online))
+			{
+				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, opponent_name, NULL, NULL, NULL, NULL);
+				if (ret_val != TRUE) goto MAIN_CLEANUP;
+				return TRUE;
+			}
+			if (ret_val)
+			{
+				strcpy_s(opponent_name, NAME_MAX_LEN, usr_arr[oponnent_idx].player_data->name);
+				break;
+			}
+			
 			Sleep(1000);
 		}
 
@@ -442,6 +458,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 		// recv game over menu answer from user
 		initMessege(&client_reply_game_over_menu, NULL, NULL, NULL, NULL, NULL, NULL);
 		ret_val = decodeWrapper(&client_reply_game_over_menu, socket);
+		if (ret_val != TRUE) goto MAIN_CLEANUP;
 
 		// if user wants to go back to main menu break loop
 		if (STRINGS_ARE_EQUAL(client_reply_game_over_menu.type, CLIENT_MAIN_MENU) || ret_val != TRUE) {
