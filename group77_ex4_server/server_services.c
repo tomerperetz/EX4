@@ -292,7 +292,6 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 		wait_code = WaitForSingleObject(partner_played_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) 
 		{
-			ret_val = ERR;
 			release_res = ReleaseSemaphore(partner_played_semaphore, 1, NULL);
 			if (release_res == FALSE)
 			{
@@ -301,6 +300,7 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 			}
 			goto Realese_And_Quit;
 		}
+
 
 		// 1st user read from file after 2nd user wrote his move
 		if (fopen_s(&fp, GAME_SESSION_PATH, "r") != FALSE || fp == NULL) 
@@ -398,6 +398,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 			{
 				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, opponent_name, NULL, NULL, NULL, NULL);
 				if (ret_val != TRUE) goto MAIN_CLEANUP;
+				usr_arr[usr->idx].status = STATUS_INIT;
 				usr_arr[usr->idx].play_vs_again = DONT_KNOW;
 				usr_arr[oponnent_idx].play_vs_again = DONT_KNOW;
 				return TRUE;
@@ -408,6 +409,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 			{
 				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, opponent_name, NULL, NULL, NULL, NULL);
 				if (ret_val != TRUE) goto MAIN_CLEANUP;
+				usr_arr[usr->idx].status = STATUS_INIT;
 				return TRUE;
 			}
 			if (ret_val)

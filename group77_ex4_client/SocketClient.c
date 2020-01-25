@@ -24,7 +24,11 @@ int connection_failure = FALSE;
 int connection_failure_msg = TRUE;
 int program_closed_nicely = TRUE;
 BOOL waiting_for_user_answer = FALSE;
-
+static HANDLE send_trigger_semaphore = NULL;
+static HANDLE send_timeout_semaphore = NULL;
+static HANDLE recv_trigger_semaphore = NULL;
+static HANDLE recv_timeout_semaphore = NULL;
+int done_flag = FALSE;
 
 
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
@@ -761,3 +765,212 @@ MAIN_CLEAN:
 	return EXIT_PROGRAM;
 }
 
+//==========================================================================
+//					Timeout thread
+//==========================================================================
+
+static DWORD sendTimeOutThread()
+{
+	int done = FALSE;
+	while (!done)
+	{
+		DWORD wait_code;
+		wait_code = WaitForSingleObject(send_trigger_semaphore, INFINITE);
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) {
+			send_flag = TRUE;
+			recv_flag = TRUE;
+			shutdown(m_socket_data.socket, SD_BOTH);
+			break;
+		}
+		wait_code = WaitForSingleObject(send_timeout_semaphore, WAITING_TIME_MILLI_SEC*10);
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) {
+			send_flag = TRUE;
+			recv_flag = TRUE;
+			shutdown(m_socket_data.socket, SD_BOTH);
+			break;
+		}
+		if (done_flag) break;
+	}
+	return TRUE;
+}
+
+static DWORD recvTimeOutThread()
+{
+	int done = FALSE;
+	while (!done)
+	{
+		DWORD wait_code;
+		wait_code = WaitForSingleObject(recv_trigger_semaphore, INFINITE);
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) {
+			send_flag = TRUE;
+			recv_flag = TRUE;
+			shutdown(m_socket_data.socket, SD_BOTH);
+			break;
+		}
+		wait_code = WaitForSingleObject(recv_timeout_semaphore, WAITING_TIME_MILLI_SEC * 10);
+		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) {
+			send_flag = TRUE;
+			recv_flag = TRUE;
+			shutdown(m_socket_data.socket, SD_BOTH);
+			break;
+		}
+		if (done_flag) break;
+	}
+	return TRUE;
+}
+
+
+// add in begging of main;
+BOOL createTimeHandles(HANDLE *send_time_handle, HANDLE *recv_time_handle)
+{
+	*send_time_handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)sendTimeOutThread, NULL, 0, NULL);
+	if (*send_time_handle == NULL)
+		return FALSE;
+	*recv_time_handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)recvTimeOutThread, NULL, 0, NULL);
+	if (*recv_time_handle == NULL)
+		return FALSE;
+	return TRUE;
+}
+
+// add in begining of main, dont forget to release
+int createTimeSemaphores()
+{
+	/*
+		Description: init global semaphores
+		parameters:
+				 - none
+		Returns: TRUE if succeded, ERR o.w
+	*/
+	int ret_val = TRUE;
+
+	send_timeout_semaphore = NULL;
+	send_timeout_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
+	if (send_timeout_semaphore == NULL) {
+		printf("Semaphore creation failed\n");
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		ret_val = ERR;
+	}
+
+	send_trigger_semaphore = NULL;
+	send_trigger_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
+	if (send_trigger_semaphore == NULL) {
+		printf("Semaphore creation failed\n");
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		ret_val = ERR;
+	}
+	recv_trigger_semaphore = NULL;
+	recv_trigger_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
+	if (recv_trigger_semaphore == NULL) {
+		printf("Semaphore creation failed\n");
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		ret_val = ERR;
+	}
+
+	recv_timeout_semaphore = NULL;
+	recv_timeout_semaphore = CreateSemaphore(NULL, 0, 1, NULL);
+	if (recv_timeout_semaphore == NULL) {
+		printf("Semaphore creation failed\n");
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		ret_val = ERR;
+	}
+
+	return ret_val;
+} 
+
+// add in end of main
+// consider splitting to seperate functions by type (recv, send)
+void closeTimeThreadAndSemaphores(HANDLE *send_time_handle, HANDLE *recv_time_handle)
+{
+	BOOL release_res = TRUE;
+
+	Sleep(WAITING_TIME_MILLI_SEC);
+	done_flag = TRUE;
+	release_res = ReleaseSemaphore(send_trigger_semaphore, 1, NULL);
+	release_res = ReleaseSemaphore(send_timeout_semaphore, 1, NULL) & release_res;
+	release_res = ReleaseSemaphore(recv_trigger_semaphore, 1, NULL) & release_res;
+	release_res = ReleaseSemaphore(recv_timeout_semaphore, 1, NULL) & release_res;
+	if (release_res != TRUE)
+	{
+		printf("Error in releasing semaphore!\n");
+	}
+
+
+
+	if (CloseHandle(*send_time_handle) == FALSE || CloseHandle(*recv_time_handle) == FALSE)
+	{
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("Details: Error when closing thread\n");
+	}
+	if (CloseHandle(send_trigger_semaphore) == FALSE || CloseHandle(send_timeout_semaphore) == FALSE
+		|| CloseHandle(recv_trigger_semaphore) == FALSE || CloseHandle(recv_timeout_semaphore) == FALSE)
+	{
+		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		printf("Details: Error when closing thread\n");
+	}
+
+	printf("Program released all resorces Nicely\n");
+}
+
+void test_func()
+{
+
+	HANDLE send_time_handle;
+	HANDLE recv_time_handle;
+	int release_res = TRUE;
+
+	// init like this in main
+	createTimeSemaphores();
+	if (!createTimeHandles(&send_time_handle, &recv_time_handle)) return;
+
+
+
+	// wrap sendWrapper with this 
+	release_res = ReleaseSemaphore(send_trigger_semaphore, 1, NULL);
+	if (release_res != TRUE)
+	{
+		printf("Error in releasing semaphore!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		return;
+	}
+	printf("Program gets in to a blocking function\n");
+	//sendwraper
+	Sleep(5000);
+	release_res = ReleaseSemaphore(send_timeout_semaphore, 1, NULL);
+
+
+	printf("Program gets out from a blocking function\n");
+	if (release_res != TRUE)
+	{
+		printf("Error in releasing semaphore!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		return;
+	}
+
+
+
+	// wrap decoderMsg with this 
+	release_res = ReleaseSemaphore(recv_trigger_semaphore, 1, NULL);
+	if (release_res != TRUE)
+	{
+		printf("Error in releasing semaphore!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		return;
+	}
+	printf("Program gets in to a blocking function\n");
+	// decode function
+	Sleep(5000);
+	release_res = ReleaseSemaphore(recv_timeout_semaphore, 1, NULL);
+
+
+	printf("Program gets out from a blocking function\n");
+	if (release_res != TRUE)
+	{
+		printf("Error in releasing semaphore!\n");
+		raiseError(7, __FILE__, __func__, __LINE__, ERROR_ID_7_OTHER);
+		return;
+	}
+
+
+	closeTimeThreadAndSemaphores(&send_time_handle, &recv_time_handle);
+	printf("YES\n");
+}
