@@ -347,6 +347,7 @@ static DWORD ServiceThread(int *threadIdx )
 		}
 		if (STRINGS_ARE_EQUAL(msg_struct.type, CLIENT_VERSUS)) {
 			usr_arr[user_idx_local].status = STATUS_CLIENT_VS;
+			usr_arr[user_idx_local].play_vs_again = DONT_KNOW;
 			ret_val = client_vs_client(t_socket, &usr_arr[user_idx_local]);
 			// if ret_val is no partner, update user and let him choose what's next
 			if (ret_val == NO_PARTNER)
