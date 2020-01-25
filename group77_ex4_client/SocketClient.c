@@ -31,18 +31,33 @@ static HANDLE recv_timeout_semaphore = NULL;
 int done_flag = FALSE;
 
 
+//==========================================================================
+//					Server connection functions
+//==========================================================================
+
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 {
+	/*
+Description: print menu to user and recieve his answer, while verifying answer is legal. if not - keep showing menu.
+parameters:
+		 - char *menu
+		 - int *answer
+		 - int max_menu_option - max legal option
+Returns: void
+*/
 	char *user_answer;
 	DWORD wait_code;
 	BOOL release_res;
 	BOOL done = FALSE;
 
 	do {
+		// check if we want to close program for some reason
 		if (recv_flag) return;
 
+		// print menu and get user answer
 		printf("%s", menu);
 
+		// in case of closing program, this semaphore lets user finish with stdin first so it won't remain blocked
 		wait_code = WaitForSingleObject(terminate_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto RELEASE_SEMAPHORE;
 		waiting_for_user_answer = TRUE;
@@ -56,6 +71,7 @@ void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 			return;
 		}
 		
+		// init user_answer int according to user answer
 		if (user_answer == NULL) {
 			*answer = ERR;
 		}
@@ -71,6 +87,7 @@ void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 			done = TRUE;
 			*answer = atoi(user_answer);
 		}
+		// if menu is player move init equvelent int that represent the move
 		else if (max_menu_option == PLAYER_MOVE)
 		{
 			lowerCase(user_answer);
@@ -115,40 +132,23 @@ RELEASE_SEMAPHORE:
 		}
 }
 
-int tryToReconnect(Socket_info *socket_data, int *try_to_reconnect_answer)
-{
-	// First print the menu and then try to connect, otherwise try first to connect
-	if (*try_to_reconnect_answer != 0) 
-	{
-		printMenuAndGetAnswer(RECONNECT_MENU, try_to_reconnect_answer, 2);
-		//*try_to_reconnect_answer = RECONNECT;
-		if (*try_to_reconnect_answer == EXIT_PROGRAM || *try_to_reconnect_answer == ERR) {
-			return EXIT_PROGRAM;
-		}
-	}
-	do {
-		if (connect(socket_data->socket, (SOCKADDR*)&(socket_data->sock_adrr), sizeof(socket_data->sock_adrr)) == SOCKET_ERROR) {
-			printf("Failed to connecting to server on %s:%s.\n", socket_data->ip_addres, socket_data->port_num_char);
-			printMenuAndGetAnswer(RECONNECT_MENU, try_to_reconnect_answer, 2);
-			//*try_to_reconnect_answer = RECONNECT;
-			if (*try_to_reconnect_answer == EXIT_PROGRAM || *try_to_reconnect_answer == ERR) {
-				return EXIT_PROGRAM;
-			}
-		}
-		else
-			*try_to_reconnect_answer = CONNECTED;
-	} while (*try_to_reconnect_answer == RECONNECT);
-	return CONNECTED;
-}
-
 int clientStateMachine(Messege *msg_in, Messege *msg_out)
 {
+	/*
+Description: clientStateMachine recieves msg in struct, reads it and init msg out in case we need one
+parameters:
+		 - char *player_move
+		 - int player_idx
+		 - int opponent_idx
+		 - SOCKET *socket
+Returns: TRUE we have a msg out to send back to server, NO_NEED_TO_REPLY if we don't have, ERR for error.
+*/
 	int ret_val = TRUE;
 	int user_answer = ERR;
 
 	if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_MAIN_MENU))
 	{
-		printMenuAndGetAnswer(SERVER_MAIN_MENU_MSG, &user_answer, 4);
+		printMenuAndGetAnswer(SERVER_MAIN_MENU_MSG, &user_answer, 3);
 		switch (user_answer)
 		{
 		case 1:
@@ -158,9 +158,6 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 			initMessege(msg_out, CLIENT_CPU, NULL, NULL, NULL, NULL, NULL);
 			break;
 		case 3:
-			initMessege(msg_out, CLIENT_LEADERBOARD, NULL, NULL, NULL, NULL, NULL);
-			break;
-		case 4:
 			initMessege(msg_out, CLIENT_DISCONNECT, NULL, NULL, NULL, NULL, NULL);
 			client_want_to_exit = TRUE;
 			break;
@@ -240,23 +237,58 @@ int clientStateMachine(Messege *msg_in, Messege *msg_out)
 		return NO_NEED_TO_REPLY;
 	}
 
-	else if (STRINGS_ARE_EQUAL(msg_in->type, SERVER_LEADERBOARD))
-	{
-		printf("Print leader board somehow\n");
-		return NO_NEED_TO_REPLY;
-	}
 
 	else
 	{
-		printf("seems we don't handle this message type: %s\n", msg_in->type);
+		printf("Seems we don't handle this message type: %s\n", msg_in->type);
 		return ERR;
 	}
 
 	return TRUE;
 }
 
+int tryToReconnect(Socket_info *socket_data, int *try_to_reconnect_answer)
+{
+	/*
+	Description: in case we have connection issue, try to reconnect as long as user chooses to.
+	parameters:
+			 - Socket_info *socket_data
+			 - int *try_to_reconnect_answer
+	Returns: CONNECTED if succeded, EXIT_PROGRAM if user doesn't want to reconnect
+	*/
+
+	// First print the menu and then try to connect, otherwise try first to connect
+	if (*try_to_reconnect_answer != 0) 
+	{
+		// print reconnect menu to user
+		printMenuAndGetAnswer(RECONNECT_MENU, try_to_reconnect_answer, 2);
+		if (*try_to_reconnect_answer == EXIT_PROGRAM || *try_to_reconnect_answer == ERR) {
+			return EXIT_PROGRAM;
+		}
+	}
+	do {
+		if (connect(socket_data->socket, (SOCKADDR*)&(socket_data->sock_adrr), sizeof(socket_data->sock_adrr)) == SOCKET_ERROR) {
+			printf("Failed to connecting to server on %s:%s.\n", socket_data->ip_addres, socket_data->port_num_char);
+			printMenuAndGetAnswer(RECONNECT_MENU, try_to_reconnect_answer, 2);
+			if (*try_to_reconnect_answer == EXIT_PROGRAM || *try_to_reconnect_answer == ERR) {
+				return EXIT_PROGRAM;
+			}
+		}
+		else
+			*try_to_reconnect_answer = CONNECTED;
+	} while (*try_to_reconnect_answer == RECONNECT);
+	return CONNECTED;
+}
+
 int checkServerAnswer(Messege *msg)
 {
+	/*
+	Description: check server answer after init connection - approved or denied.
+	parameters:
+			 - Messege *msg - msg recieved from server
+
+	Returns: CONNECTED if we are connected, EXIT_PROGRAM if connection denied for some reason.
+	*/
 	int ret_val = CONNECTED;
 	if (STRINGS_ARE_EQUAL(msg->type, SERVER_APPROVED))
 	{
@@ -280,11 +312,20 @@ int checkServerAnswer(Messege *msg)
 	return ret_val;
 
 }
+
+
 //==========================================================================
 //					Threads
 //==========================================================================
 void TerminateThreadBrutally(int thread_idx)
 {
+	/*
+	Description: terminate thread brutally, in case it is blocked.
+	parameters:
+			 - int thread_idx - thread idx on threads handles array
+	Returns: void
+	*/
+
 	extern HANDLE hThread[NUM_OF_THREADS];
 	TerminateThread(hThread[thread_idx], 0x555);
 	fflush(stdin);
@@ -297,11 +338,14 @@ void TerminateThreadBrutally(int thread_idx)
 
 void TerminateThreadNicelly(int thread_idx)
 {
+	/*
+	Description: closes thread, after thread itself done running.
+	parameters:
+			 - int thread_idx - thread idx on threads handles array
+	Returns: void
+*/
 	extern HANDLE hThread[NUM_OF_THREADS];
 	LPDWORD exit_code = 0;
-
-	//if (GetExitCodeThread(hThread[thread_idx], exit_code) == 0)
-	//	raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
 
 	if (CloseHandle(hThread[thread_idx]) == FALSE)
 	{
@@ -313,11 +357,16 @@ void TerminateThreadNicelly(int thread_idx)
 //Reading data coming from the server
 static DWORD RecvDataThread(void)
 {
+	/*
+	Description: RECV data thread - recivies msg from server, decodes it, and puts it in FIFO line.
+	parameters: none 
+	Returns: TRUE if ended correctly, ERR ow
+	*/
+
 	extern msg_fifo *msg_q;
 	extern int send_flag;
 	extern int recv_flag;
 	extern int close_send_brutally;
-
 	int ret_val = TRUE;
 	int recv_ret_val = TRUE;
 	int wait_code = TRUE;
@@ -328,6 +377,7 @@ static DWORD RecvDataThread(void)
 	
 	while (TRUE)
 	{
+		// verify send thread didn't close for some reason
 		if (send_flag)
 		{
 			close_recv_brutally = FALSE;
@@ -344,14 +394,14 @@ static DWORD RecvDataThread(void)
 	
 		if (recv_ret_val != TRUE) goto UPDATE_FLAG_AND_EXIT_THREAD;
 		
-		// reciving semaphore - only recieve if not sending
+		// msg queue semaphore - only one thread changes the queue
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto EXIT_AND_RLS_SMPHR;
 
 		// insert to messege Q
 		ret_val = msg_q_insert(&msg_struct);
 
-		// done reciving, release semaphore
+		// done inserting to Q, release semaphore
 		release_res = ReleaseSemaphore(msg_q_semaphore, 1, &previous_count);
 		if (release_res == FALSE)
 		{
@@ -360,12 +410,12 @@ static DWORD RecvDataThread(void)
 			goto UPDATE_FLAG_AND_EXIT_THREAD;
 		}
 
+		// in case of error in inserting to Q
 		if (ret_val != TRUE)
 		{
 			freeMessege(&msg_struct);
 			goto UPDATE_FLAG_AND_EXIT_THREAD;
 		}
-
 
 		// free Messege struct. will be allocated again on next loop
 		freeMessege(&msg_struct);
@@ -374,6 +424,7 @@ static DWORD RecvDataThread(void)
 
 	return TRUE;
 
+	// close thread and free resources if we had any king of failure
 UPDATE_FLAG_AND_EXIT_THREAD:
 	close_recv_brutally = FALSE;
 	if ((recv_ret_val != TRUE) && (client_want_to_exit != TRUE)) {
@@ -383,7 +434,7 @@ UPDATE_FLAG_AND_EXIT_THREAD:
 		if (!client_want_to_exit)
 			printf("Fatal error occured, aborting...\n"); 
 	}
-	if (waiting_for_user_answer) printf("Please press any key to continue...\n");
+	if (waiting_for_user_answer) printf("Seems we have connection issue. Please press any key to continue...\n");
 	recv_flag = TRUE;
 	return ERR;
 
@@ -404,6 +455,12 @@ EXIT_AND_RLS_SMPHR:
 //Sending data to the server
 static DWORD SendDataThread(void)
 {	
+	/*
+	Description: SendDataThread - sending msg from server thread. read first msg in fifo queue and handle it.
+	parameters: none
+	Returns: TRUE if ended correctly, ERR ow
+	*/
+
 	extern int send_flag;
 	extern int recv_flag;
 	extern int close_send_brutally;
@@ -433,6 +490,7 @@ static DWORD SendDataThread(void)
 		ret_val = initMessege(&curr_msg, NULL, NULL, NULL, NULL, NULL, NULL);
 		if (ret_val == ERR) goto UPDATE_FLAG_AND_EXIT_THREAD;
 		
+		// only one thread can access the msg line
 		wait_code = WaitForSingleObject(msg_q_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE)
 			goto EXIT_AND_RLS_SMPHR;
@@ -453,10 +511,10 @@ static DWORD SendDataThread(void)
 		// if we have msg in Q
 		if ((ret_val == TRUE)&&(recv_flag!=TRUE))
 		{	
-
 			// send messege to state machine
 			ret_val = clientStateMachine(&curr_msg, &msg_out);
 
+			// if we had error in state machine
 			if (ret_val == ERR)
 			{
 				// free curr_msg
@@ -466,9 +524,10 @@ static DWORD SendDataThread(void)
 				goto EXIT_AND_RLS_SMPHR;
 			}
 
-			// in case we have a messege to send back to server
+			// if we have msg to send back to server
 			else if (ret_val == TRUE)
 			{
+				// check recv thread didn't close for some reason, if so - close this thread as well
 				if (recv_flag)
 				{
 					close_send_brutally = FALSE;
@@ -481,6 +540,7 @@ static DWORD SendDataThread(void)
 				send_ret_val = sendMessegeWrapper(m_socket_data.socket, msg_out.type, msg_out.params[0], \
 					msg_out.params[1], msg_out.params[2], msg_out.params[3], msg_out.params[4]);
 
+				// in case of error in sending
 				if (send_ret_val != TRUE)
 				{
 					// free curr_msg
@@ -489,7 +549,7 @@ static DWORD SendDataThread(void)
 					goto UPDATE_FLAG_AND_EXIT_THREAD;
 				}
 
-				// if clients wants to quit, close send msg loop and start exit process
+				// if clients wants to quit program, close send msg loop and start exit process
 				if (STRINGS_ARE_EQUAL(msg_out.type, CLIENT_DISCONNECT)) 
 				{
 					done = TRUE;
@@ -509,7 +569,7 @@ static DWORD SendDataThread(void)
 	shutdown(m_socket_data.socket, SD_SEND);
 	return TRUE;
 
-
+// close all resources if we had ERR in the main loop
 UPDATE_FLAG_AND_EXIT_THREAD:
 	if (send_ret_val != TRUE) connection_failure = TRUE;
 	else {
@@ -537,6 +597,12 @@ EXIT_AND_RLS_SMPHR:
 // Thread controller - verify both thread are up and runnning
 static DWORD ThreadCtrl(void)
 {
+	/*
+	Description: ThreadCtrl - controller thread. it samples send and recv flags, in case one of them closed for any reason. 
+								if so - this thread closes the rest of the program while giving chance to other threads finish running properly.
+	parameters: none
+	Returns: TRUE 
+	*/
 	extern int recv_flag;
 	extern int send_flag;
 	extern int close_send_brutally;
@@ -549,33 +615,39 @@ static DWORD ThreadCtrl(void)
 
 	while (TRUE)
 	{
-
+		// if send thread closed, start closing recv thread.
 		if (send_flag)
 		{
 			if (client_want_to_exit) local_wait = 100;
+			
+			// give other thread some time tofree resources and return. will not happen in case of blocking function.
 			Sleep(local_wait);
-			if (close_recv_brutally)
-			{
-				TerminateThreadBrutally(RECV_THREAD_IDX);
-			}
-			else
-			{
-				TerminateThreadNicelly(RECV_THREAD_IDX);
-			}
+
+			// close brutally or nicelly
+			if (close_recv_brutally) TerminateThreadBrutally(RECV_THREAD_IDX);
+			else TerminateThreadNicelly(RECV_THREAD_IDX);
+
+			// close send thread nicelly, it returned and freed the resources
 			TerminateThreadNicelly(SEND_THREAD_IDX);
+			
 			return TRUE;
 		}	
 
 		if (recv_flag && !send_flag)
 		{	
+			// don't start closing program while user blocks stdin, let him finish first so thread won't lock it
 			wait_code = WaitForSingleObject(terminate_semaphore, INFINITE);
 			if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) goto RELEASE_SEMAPHORE_CTRL;
 			shutdown(m_socket_data.socket, SD_SEND);
+
+			// give other thread some time tofree resources and return. will not happen in case of blocking function.
 			Sleep(local_wait);
-			if (close_send_brutally)
-				TerminateThreadBrutally(SEND_THREAD_IDX);
-			else
-				TerminateThreadNicelly(SEND_THREAD_IDX);
+
+			// close brutally or nicelly
+			if (close_send_brutally) TerminateThreadBrutally(SEND_THREAD_IDX);
+			else TerminateThreadNicelly(SEND_THREAD_IDX);
+
+			// close recv thread nicelly, it returned and freed the resources
 			TerminateThreadNicelly(RECV_THREAD_IDX);
 
 RELEASE_SEMAPHORE_CTRL:
@@ -592,13 +664,14 @@ RELEASE_SEMAPHORE_CTRL:
 	return TRUE;
 }
 
+
 //==========================================================================
 //					Semaphores
 //==========================================================================
 int createProgramSemaphores()
 {
 	/*
-		Description: init global semaphores
+		Description: init global semaphores - for clsoing program and handeling msg queue.
 		parameters:
 				 - none
 		Returns: TRUE if succeded, ERR o.w
@@ -626,12 +699,24 @@ int createProgramSemaphores()
 	return ret_val;
 }
 
+
 //==========================================================================
 //					Main
 //==========================================================================
 
 int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to_reconnect_answer)
 {
+	/*
+	Description: MainClient - this function alloocated new user socket and try to connect it to server in.
+	parameters:
+			- char *ip_addres - server ip address
+			- char *port_num_char - server application port num
+			- char *user_name - user name
+			- int try_to_reconnect_answer - in case we couldn't connect for some reason and we are now trying to reconnect
+
+	Returns: EXIT_PROGRAM if user wants to exit, Reconnect if we had connection err and he wants to reconnect
+	*/
+
 	extern int close_send_brutally;
 	extern int close_recv_brutally;
 	extern int send_flag;
@@ -655,6 +740,7 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 	extern msg_fifo *msg_q;
 	msg_q_init();
 	initMessege(&approval_msg, NULL, NULL, NULL, NULL, NULL, NULL);
+
 	//Call WSAStartup and check for errors.
 	int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult != NO_ERROR)
@@ -685,27 +771,23 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 	m_socket_data.sock_adrr.sin_addr.s_addr = inet_addr(ip_addres); //Setting the IP address to connect to
 	m_socket_data.sock_adrr.sin_port = htons(atoi(port_num_char)); //Setting the port to connect to.
 
-	/*
-		AF_INET is the Internet address family.
-	*/
-
-
 	// Call the connect function, passing the created socket and the sockaddr_in structure as parameters. 
 	// Check for general errors.
-	
+
+	// try to connect - first time, afterwords according to user answer try to reconnect or exit
 	tryToReconnect(&m_socket_data, &try_to_reconnect_answer);
-	if (try_to_reconnect_answer != CONNECTED) {
-		goto MAIN_CLEAN;
-	}
+	if (try_to_reconnect_answer != CONNECTED) goto MAIN_CLEAN;
 
 	// Send client request messege to server
 	ret_val = sendMessegeWrapper(m_socket_data.socket, "CLIENT_REQUEST", user_name, NULL, NULL, NULL, NULL);
 	if (ret_val != TRUE)
 	{
-		printf("Client request messege didn't sent due to connection error\n");
+		printf("Client request messege didn't send due to connection error\n");
 		connection_failure = TRUE;
 		goto MAIN_CLEAN;
 	}
+
+	// recv approval msg from server
 	ret_val = decodeWrapper(&approval_msg, &m_socket_data.socket);
 	if (ret_val != TRUE)
 	{
@@ -713,9 +795,12 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 		goto MAIN_CLEAN;
 	}
 
+	// in case connection denied
 	if (checkServerAnswer(&approval_msg) != CONNECTED) goto MAIN_CLEAN;
 
+	// o.w connection succeded
 	printf("Connected to server on %s:%s\n", m_socket_data.ip_addres, m_socket_data.port_num_char);
+
 	// create threads
 	hThread[SEND_THREAD_IDX] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SendDataThread, NULL, 0, NULL);
 	hThread[RECV_THREAD_IDX] = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)RecvDataThread, NULL, 0, NULL);
@@ -724,12 +809,14 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 	if ((hThread[SEND_THREAD_IDX] == NULL)||(hThread[RECV_THREAD_IDX] == NULL)||(hThread[CTRL_THREAD_IDX] == NULL))
 	{
 		printf("thread creation failed. exiting \n");
+		goto MAIN_CLEAN;
 	}
 
+	// we are only waiting to ctrl thread, because it is the one closing everyone else
 	wait_code = WaitForSingleObject(hThread[CTRL_THREAD_IDX], INFINITE);
 	ret_val = checkWaitCodeStatus(wait_code, FALSE);
 
-
+	// if we had err in wait code, close threads brutally
 	if (ret_val == ERR)
 	{
 		printf("error in creating threads\n");
@@ -737,12 +824,11 @@ int MainClient(char *ip_addres, char *port_num_char, char *user_name, int try_to
 		TerminateThreadBrutally(RECV_THREAD_IDX);
 		TerminateThreadBrutally(CTRL_THREAD_IDX);
 	}
-	else
-	{
-		TerminateThreadNicelly(CTRL_THREAD_IDX);
-	}
+	// else we only need to close ctrl thread
+	else TerminateThreadNicelly(CTRL_THREAD_IDX);
 
 MAIN_CLEAN:
+	// free all resources
 	msg_q_freeQ();
 	closesocket(m_socket_data.socket);
 	WSACleanup();
@@ -755,6 +841,7 @@ MAIN_CLEAN:
 	close_recv_brutally = TRUE;
 	client_want_to_exit = FALSE;
 
+	// if we had connection error
 	if (connection_failure == TRUE)
 	{
 		printf("Connection to server on %s:%s has been lost.\n", m_socket_data.ip_addres, m_socket_data.port_num_char);
@@ -764,6 +851,7 @@ MAIN_CLEAN:
 
 	return EXIT_PROGRAM;
 }
+
 
 //==========================================================================
 //					Timeout thread

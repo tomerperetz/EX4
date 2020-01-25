@@ -11,8 +11,6 @@
 #define SERVER_NO_OPPONENTS "SERVER_NO_OPPONENTS"
 #define SERVER_NO_OPPONENTS_MSG "Couldn't find an opponent. Please try again later.\n"
 
-#define SERVER_LEADERBOARD "SERVER_LEADERBOARD"
-
 #define CONNECTION_SUCCEEDED_MSG  "Connected to server on %s:%s\n"
 
 #define CONNECTION_FAILED_MSG "Failed connecting to server on %s:%s.\n"\
@@ -38,13 +36,7 @@
 #define SERVER_MAIN_MENU_MSG "Choose what to do next:\n"\
 											"1.Play against another client\n"\
 											"2.Play against the server\n"\
-											"3.View the leaderboard\n"\
-											"4.Quit\n"
-
-#define SERVER_LEADERBOARD_MENU "SERVER_LEADERBOARD_MENU"
-#define SERVER_LEADERBOARD_MENU_MSG "Choose what to do next:\n"\
-													"1. Refresh leaderboard\n"\
-													"2. Return to the main MENU\n"
+											"3.Quit\n"
 
 #define SERVER_PLAYER_MOVE_REQUEST "SERVER_PLAYER_MOVE_REQUEST"
 #define SERVER_PLAYER_MOVE_REQUEST_MSG "Choose a move from the list: Rock, Paper, Scissors, Lizard or Spock\n"

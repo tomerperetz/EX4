@@ -288,7 +288,7 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 
 	if (writer_flag)
 	{
-		// 1st user waits until 2nd user wrote his move
+		// 1st user waits until 2nd user writes his move
 		wait_code = WaitForSingleObject(partner_played_semaphore, INFINITE);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) 
 		{
@@ -393,11 +393,10 @@ int client_vs_client(SOCKET *socket, User *usr)
 		{
 			ret_val = searchPartner();
 			
-			// if oppenent is online and don't want to play
-			if ((usr_arr[oponnent_idx].play_vs_again == FALSE)&&(usr_arr[oponnent_idx].online)&&(usr_arr[oponnent_idx].status!=STATUS_INIT))
+			// if oppenent chose to return to main menu
+			if ((game_number > 1) && (usr_arr[oponnent_idx].play_vs_again == FALSE)&&(usr_arr[oponnent_idx].status == STATUS_LEFT_GAME))
 			{
 				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, opponent_name, NULL, NULL, NULL, NULL);
-				printf("1");
 				if (ret_val != TRUE) goto MAIN_CLEANUP;
 				usr_arr[usr->idx].status = STATUS_INIT;
 				usr_arr[usr->idx].play_vs_again = DONT_KNOW;
@@ -405,11 +404,10 @@ int client_vs_client(SOCKET *socket, User *usr)
 				return TRUE;
 			}
 
-			// if oppenent is offline after first game - he quit before we answered
+			// if oppenent chose to return to main menu and replied before we answered -> he is offline
 			if ((game_number > 1) && (!usr_arr[oponnent_idx].online))
 			{
 				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, opponent_name, NULL, NULL, NULL, NULL);
-				printf("2");
 				if (ret_val != TRUE) goto MAIN_CLEANUP;
 				usr_arr[usr->idx].status = STATUS_INIT;
 				return TRUE;
@@ -468,7 +466,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 		if (STRINGS_ARE_EQUAL(client_reply_game_over_menu.type, CLIENT_MAIN_MENU) || ret_val != TRUE) {
 			if (ret_val == TRUE) freeMessege(&client_reply_game_over_menu);
 			usr->play_vs_again = FALSE;
-			usr_arr[usr->idx].status = STATUS_INIT;
+			usr_arr[usr->idx].status = STATUS_LEFT_GAME;
 			done = TRUE;
 			goto MAIN_CLEANUP;
 		}

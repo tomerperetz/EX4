@@ -3,6 +3,7 @@
 
 // defines ------------------------------------------------------->
 #define STATUS_INIT -1
+#define STATUS_LEFT_GAME -2
 #define STATUS_CLIENT_CPU 0
 #define STATUS_CLIENT_VS 1
 #define STATUS_CLIENT_QUIT 2
