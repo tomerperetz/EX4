@@ -1,11 +1,13 @@
 #pragma once
-// Description ----------------------------------------------------------------->
-/* 
- This file was written for instruction purposes for the 
- course "Introduction to Systems Programming" at Tel-Aviv
- University, School of Electrical Engineering, Winter 2011, 
- by Amnon Drory.
+/*
+=================================================================================
+							Description
+=================================================================================
+		 Public send recv tools and functions headers
+
+=================================================================================
 */
+
 
 // Defines ----------------------------------------------------------------->
 #ifndef SOCKET_SEND_RECV_TOOLS_H
@@ -62,7 +64,7 @@ void getEncodeMessegeLength(Messege *msg, int *encoded_messege_len);
 
 int getLen(char *buffer, int idx, char last_char);
 
-void getSegement(char *dst_buffer, char *src_buffer, int start_idx, char last_idx);
+void getSegement(char *dst_buffer, char *src_buffer, int start_idx, int last_idx);
 
 int decodeMsg(char *char_arr, Messege *decoded_msg);
 

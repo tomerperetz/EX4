@@ -1,3 +1,11 @@
+//==========================================================================
+//					Description
+//==========================================================================
+/*
+		Client socket - client side communication threads and functions
+*/
+//==========================================================================
+
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #include "../Shared/hardCodedData.h"
@@ -38,13 +46,13 @@ int done_flag = FALSE;
 void printMenuAndGetAnswer(char *menu, int *answer, int max_menu_option)
 {
 	/*
-Description: print menu to user and recieve his answer, while verifying answer is legal. if not - keep showing menu.
-parameters:
-		 - char *menu
-		 - int *answer
-		 - int max_menu_option - max legal option
-Returns: void
-*/
+	Description: print menu to user and recieve his answer, while verifying answer is legal. if not - keep showing menu.
+	parameters:
+			 - char *menu
+			 - int *answer
+			 - int max_menu_option - max legal option
+	Returns: void
+	*/
 	char *user_answer;
 	DWORD wait_code;
 	BOOL release_res;

@@ -1,10 +1,11 @@
 
 /*
-====================================================================================================================
-Description:
-Server commiunication threads functions.
-initialize server and open threads for users.
-====================================================================================================================
+=================================================================================
+							Description
+=================================================================================
+		Server commiunication threads functions.
+		initialize server and open threads for users.
+=================================================================================
 */
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -18,7 +19,7 @@ initialize server and open threads for users.
 #include "server_services.h"
 
 // Shared ------------->
-#include "../Shared/SocketExampleShared.h"
+#include "../Shared/SocketShared.h"
 #include "../Shared/SocketSendRecvTools.h"
 
 // Defines ------------------------------------------------------------------>

@@ -123,7 +123,6 @@
     <ClCompile Include="..\Shared\lib_osHandler.c" />
     <ClCompile Include="..\Shared\SocketSendRecvTools.c" />
     <ClCompile Include="client_main.c" />
-    <ClCompile Include="client_services.c" />
     <ClCompile Include="SocketClient.c" />
   </ItemGroup>
   <ItemGroup>

@@ -1,8 +1,9 @@
 /*
-====================================================================================================================
-Description:
-Hard coded data: includes and defines
-====================================================================================================================
+//==========================================================================
+//					Description
+//==========================================================================
+			Hard coded data: includes and defines
+=============================================================================
 */
 
 // Pragma ------------------------------------------------------>
@@ -29,7 +30,7 @@ Hard coded data: includes and defines
 #include "lib_errorHandler.h"
 #include "lib_osHandler.h"
 #include "SocketSendRecvTools.h"
-#include "SocketExampleShared.h"
+#include "SocketShared.h"
 
 // server ------------>
 #include "../group77_ex4_server/SocketServer.h"

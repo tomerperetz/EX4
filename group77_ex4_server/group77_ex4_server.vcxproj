@@ -131,7 +131,7 @@
     <ClInclude Include="..\Shared\hardCodedData.h" />
     <ClInclude Include="..\Shared\lib_errorHandler.h" />
     <ClInclude Include="..\Shared\lib_osHandler.h" />
-    <ClInclude Include="..\Shared\SocketExampleShared.h" />
+    <ClInclude Include="..\Shared\SocketShared.h" />
     <ClInclude Include="..\Shared\SocketSendRecvTools.h" />
     <ClInclude Include="server_services.h" />
     <ClInclude Include="SocketServer.h" />
