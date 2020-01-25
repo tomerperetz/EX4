@@ -209,6 +209,7 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 	int player_move_idx = ERR;
 	int opponent_move_idx = ERR;
 	int game_results = ERR;
+	int wait_time_for_opponent_move = 5 * 60 * 1000; // wait 5 minute to opponent, o.w assume he left the game
 	char opponent_move[MAX_MOVE_SIZE];
 	char winner_name[NAME_MAX_LEN];
 	DWORD wait_code = 0;
@@ -298,9 +299,10 @@ int playVsGame(char *player_move, int player_idx, int opponent_idx, SOCKET *sock
 	if (writer_flag)
 	{
 		// 1st user waits until 2nd user writes his move
-		wait_code = WaitForSingleObject(partner_played_semaphore, INFINITE);
+		wait_code = WaitForSingleObject(partner_played_semaphore, wait_time_for_opponent_move);
 		if (checkWaitCodeStatus(wait_code, TRUE) != TRUE) 
 		{
+			if (wait_code == WAIT_TIMEOUT) return WAIT_TIMEOUT;
 			release_res = ReleaseSemaphore(partner_played_semaphore, 1, NULL);
 			if (release_res == FALSE)
 			{
@@ -416,6 +418,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 			// if oppenent chose to return to main menu and replied before we answered -> he is offline
 			if ((game_number > 1) && (!usr_arr[oponnent_idx].online))
 			{
+				OPPONENT_LEFT:
 				ret_val = sendMessegeWrapper(*socket, SERVER_OPPONENT_QUIT, opponent_name, NULL, NULL, NULL, NULL);
 				if (ret_val != TRUE) goto MAIN_CLEANUP;
 				usr_arr[usr->idx].status = STATUS_INIT;
@@ -458,6 +461,7 @@ int client_vs_client(SOCKET *socket, User *usr)
 		if (ret_val != TRUE)
 		{
 			freeMessege(&client_reply_move);
+			if (ret_val == WAIT_TIMEOUT) goto OPPONENT_LEFT;
 			goto MAIN_CLEANUP;
 		}
 		freeMessege(&client_reply_move);

@@ -823,8 +823,9 @@ int checkWaitCodeStatus(DWORD wait_code, BOOL singleNotMultiple) {
 	switch (wait_code)
 	{
 	case WAIT_TIMEOUT:
-		raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
-		printf("details: Timeout error when waiting\n");
+		//raiseError(6, __FILE__, __func__, __LINE__, ERROR_ID_6_THREADS);
+		//printf("details: Timeout error when waiting\n");
+		retVal1 = WAIT_TIMEOUT;
 		break;
 	case WAIT_FAILED:
 		errorMessageID = GetLastError();
